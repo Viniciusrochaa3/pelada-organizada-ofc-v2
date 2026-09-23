@@ -236,14 +236,25 @@ tr.tap{cursor:pointer}
 .loading{min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
 .loading .mark{width:64px;height:64px;border-radius:20px;animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{50%{transform:scale(.9);opacity:.7}}
-.vhero{margin-top:14px;padding:22px 18px;border-radius:24px;background:radial-gradient(120% 90% at 100% 0%,rgba(255,212,0,.16),transparent 60%),var(--s1);border:1px solid var(--line);display:flex;flex-direction:column;gap:12px}
-.vhero h1{font-size:44px;color:var(--tx)}
-.vhero p{margin:0;max-width:40ch}
-.pgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.pcard{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:16px 10px;min-width:0}
-.pcard b{font-size:15px;line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.plogo{width:64px;height:64px;border-radius:18px;background:var(--y);display:grid;place-items:center;overflow:hidden}
+html.vit,html.vit body{--bg:#000;--s1:#0E0E0D;--s2:#171715;--line:#232320;background:#000}
+.vtop{margin-top:16px;display:flex;flex-direction:column;gap:10px}
+.vtop h1{font-size:46px;line-height:.92}
+.vtop h1 span{color:var(--y)}
+.vtop p{margin:0;max-width:38ch}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px 10px;margin-top:4px}
+.pcard{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;min-width:0;padding:4px 2px}
+.pcard b{font-size:13.5px;line-height:1.15;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.pcard .cid{font-size:11.5px;color:var(--mu);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcard .pill{font-size:10px;padding:2px 7px}
+.plogo{width:88px;height:88px;max-width:100%;aspect-ratio:1;border-radius:50%;background:var(--y);display:grid;place-items:center;overflow:hidden;box-shadow:0 0 0 2px #000,0 0 0 3px var(--line);transition:transform .15s}
+.pcard:active .plogo{transform:scale(.95)}
 .plogo img{width:100%;height:100%;object-fit:cover}
+.plogo.sm{width:40px;height:40px;box-shadow:none}
+.minhas{display:flex;flex-direction:column;gap:8px}
+.mchip{display:flex;align-items:center;gap:12px;background:var(--s1);border:1px solid var(--y);border-radius:16px;padding:10px 12px;text-align:left;width:100%}
+.mchip b{display:block}
+.cta{border-style:dashed}
+@media (max-width:360px){.plogo{width:72px;height:72px}}
 .linkbox{font-family:var(--num);font-size:15px;background:var(--s2);border:1px dashed var(--line);border-radius:12px;padding:12px;word-break:break-all;user-select:all}
 a.btn{text-decoration:none}
 /* stepper */
@@ -447,8 +458,8 @@ const NOMES_EX=[['Anderson','Andinho',3.5],['Marcos','',3],['Vitor','Vitão',4],
 /* ============ RENDER ============ */
 function render(){const app=$('#app');const nav=$('#nav');
  if(G.loading){app.innerHTML=`<div class="loading"><div class="mark">${I.ball.replace('<svg','<svg width="30" height="30" style="color:#0B0B0A"')}</div><div class="lbl">Carregando…</div></div>`;nav.hidden=true;renderSheet();return}
- if(G.view!=='app'||!pel()){app.innerHTML=headerVit()+vVitrine();nav.hidden=true;renderSheet();return}
- nav.hidden=false;const p=pel();
+ if(G.view!=='app'||!pel()){document.documentElement.classList.add('vit');app.innerHTML=headerVit()+vVitrine();nav.hidden=true;renderSheet();return}
+ document.documentElement.classList.remove('vit');nav.hidden=false;const p=pel();
  const views={home:vHome,ranking:vRanking,jogo:vJogo,rodadas:vRodadas,mais:vMais};
  app.innerHTML=header(p)+(views[U.tab]||vHome)();
  $('#nav').innerHTML=`<div class="nav-in">${navB('home','Início',I.home)}${navB('ranking','Ranking',I.trophy)}<button class="nb mid ${U.tab==='jogo'?'on':''}" data-a="tab" data-t="jogo" aria-label="Jogo"><span class="ball">${I.ball}</span>Jogo</button>${navB('rodadas','Rodadas',I.cal)}${navB('mais','Mais',I.grid)}</div>`;
@@ -462,7 +473,7 @@ const empty=(t,btn='')=>`<div class="empty"><div>${t}</div>${btn}</div>`;
 function vHome(){const p=pel();const per=periodoPadrao();const ag=agregado(per);const rows=[...ag.rows].sort(ordMVP);
  const ult=rodadasDe().find(r=>r.fechada);const ab=aberta();
  const art=[...ag.rows].sort((a,b)=>b.g-a.g)[0],gar=[...ag.rows].sort((a,b)=>b.a-a.a)[0];
- let h=demoBanner();
+ let h=demoBanner();if(isAdm()&&G.pedidosPel.length)h+=`<button class="rc" style="margin-top:12px;border-color:var(--y)" data-a="irMais" data-v="convidar"><div class="thumb" style="width:48px;height:48px;background:var(--ysoft);color:var(--y)">${I.users}</div><div class="grow"><b>${G.pedidosPel.length} pedido${G.pedidosPel.length>1?'s':''} pra entrar na pelada</b><div class="mu small">Toque pra aceitar ou recusar</div></div>${I.chev}</button>`;
  h+=`<section class="hero" style="margin-top:12px"><div class="hero-row"><div class="hero-logo">${logoInv(p)}</div><div class="grow"><div class="lbl">${esc(p.cidade||'Cidade')} · ${esc(p.uf)}</div><h1>${esc(p.nome)}</h1></div></div>
   <div class="hero-meta"><span>Toda ${DIAS[p.dia].toLowerCase()}</span><span>${elenco().length} no elenco</span><span>${p.porTime} por time</span></div></section>`;
  if(ab)h+=`<button class="rc" style="margin-top:12px;border-color:var(--y)" data-a="tab" data-t="jogo"><div class="thumb" style="background:var(--y);color:var(--yk)">${I.ball.replace('<svg','<svg width="34" height="34"')}</div><div class="grow"><span class="pill y">Ao vivo</span><h3 style="margin-top:6px">Rodada de ${dm(ab.data)} rolando</h3><div class="mu small">${ab.jogos.filter(g=>g.fim).length} jogos encerrados · toque pra abrir</div></div>${I.chev}</button>`;
@@ -612,7 +623,7 @@ function vMais(){const m=U.mais;if(m==='jogadores')return vJogadores();if(m==='b
  const it=(k,ic,t,d,a='irMais')=>`<button class="mi" data-a="${a}" data-v="${k}"><span class="ico">${ic}</span><span class="grow"><b style="display:block">${t}</b><span class="mu small">${d}</span></span><span class="chev">${I.chev}</span></button>`;
  const pend=S.batalhas.filter(b=>(b.status==='desafio'&&b.b===S.atual)||(b.status==='candidatura'&&b.a===S.atual)).length;
  const outras=Object.keys(G.minhas).length;
- return `<div class="stack" style="margin-top:6px"><h1>Mais</h1></div><div class="sec"><div class="menu">${it('jogadores',I.users,'Jogadores',elenco().length+' no elenco')}${it('batalhas',I.swords,'Batalhas',pend?`<b style="color:var(--y)">${pend} pra responder</b>`:'Desafios, vagas e ranking')}${isAdm()?it('convidar',I.share,'Convidar jogadores','Link de convite e membros'):''}${isAdm()?it('ajustes',I.gear,'Ajustes da pelada','Pontuação, times, frases'):''}</div>
+ return `<div class="stack" style="margin-top:6px"><h1>Mais</h1></div><div class="sec"><div class="menu">${it('jogadores',I.users,'Jogadores',elenco().length+' no elenco')}${it('batalhas',I.swords,'Batalhas',pend?`<b style="color:var(--y)">${pend} pra responder</b>`:'Desafios, vagas e ranking')}${isAdm()?it('convidar',I.share,'Convidar jogadores',G.pedidosPel.length?`<b style="color:var(--y)">${G.pedidosPel.length} pedido${G.pedidosPel.length>1?'s':''} pra entrar</b>`:'Link de convite, pedidos e membros'):''}${isAdm()?it('ajustes',I.gear,'Ajustes da pelada','Pontuação, times, frases'):''}</div>
  <div class="menu">${it('',I.map,'Todas as peladas',outras>1?'Trocar de pelada, cadastrar outra':'Vitrine, batalhas e vagas','irVitrine')}${it('',I.users,esc(nomeUser()||'Minha conta'),'Sair da conta','conta')}</div>
  <div class="mu small" style="text-align:center;margin-top:10px">Você é <b>${isAdm()?'admin':'jogador'}</b> nesta pelada.${isAdm()?'':' Jogador vê tudo e mexe só no placar.'}</div></div>`}
 const backMais=t=>`<button class="back" data-a="irMais" data-v="">${I.back} Mais</button><div class="stack" style="margin-top:8px"><h1>${t}</h1></div>`;
@@ -689,7 +700,7 @@ function baixarBlob(b,nome){const u=URL.createObjectURL(b);const a=document.crea
 /* ============ BANCO (SUPABASE) ============ */
 const SB_URL='https://hugopgcgagdkvztougbh.supabase.co',SB_KEY='sb_publishable_CqsOL7VH0xRDjmPoQmWqpQ_74OxX6gp';
 const sb=window.supabase.createClient(SB_URL,SB_KEY);
-const G={user:null,minhas:{},loading:true,view:'vitrine',membros:[],codigo:null,convite:null,conviteInfo:null,net:true,vit:'peladas',uf:'',cidade:''};
+const G={pedidos:{},pedidosPel:[],user:null,minhas:{},loading:true,view:'vitrine',membros:[],codigo:null,convite:null,conviteInfo:null,net:true,vit:'peladas',uf:'',cidade:''};
 let LAST={},syncT=null,syncing=false,again=false,chan=null;
 const isMembro=()=>!!(S.atual&&G.minhas[S.atual]);
 const podePlacar=()=>isMembro();
@@ -742,6 +753,7 @@ function assinar(pid){if(chan)sb.removeChannel(chan);
  .on('postgres_changes',{event:'DELETE',schema:'public',table:'rodadas'},p=>{const id=p.old&&p.old.id;const i=S.rodadas.findIndex(r=>r.id===id);if(i>=0){S.rodadas.splice(i,1);delete LAST['rodadas|'+id];rr()}})
  .on('postgres_changes',{event:'*',schema:'public',table:'batalhas'},p=>{if(p.eventType==='DELETE'){S.batalhas=S.batalhas.filter(b=>b.id!==(p.old&&p.old.id));return rr()}const nb=batFromRow(p.new);const key='batalhas|'+nb.id;const row=batToRow(nb);
    if(aplicaRemoto(key,row,()=>{const i=S.batalhas.findIndex(b=>b.id===nb.id);i>=0?S.batalhas[i]=nb:S.batalhas.push(nb)}))rr()})
+ .on('postgres_changes',{event:'*',schema:'public',table:'solicitacoes',filter:'pelada_id=eq.'+pid},()=>{if(isAdm())carregarMembros()})
  .subscribe()}
 function rtJogo(x){const r=S.rodadas.find(q=>q.id===x.rodada_id);if(!r)return false;const g=jogoFromRow(x);const key='jogos|'+g.id;
  return aplicaRemoto(key,jogoToRow(g,r,x.ordem),()=>{const i=r.jogos.findIndex(q=>q.id===g.id);if(i>=0)r.jogos[i]=g;else r.jogos.splice(Math.min(x.ordem,r.jogos.length),0,g)})}
@@ -751,7 +763,7 @@ function rtRodada(x){const nr=rodFromRow(x);const key='rodadas|'+nr.id;const old
 /* ---- carregar ---- */
 async function carregarVitrine(){const [p,b]=await Promise.all([sb.from('peladas').select('id,nome,cidade,uf,dia,logo,config').order('nome'),sb.from('batalhas').select('*')]);
  if(p.error)throw p.error;S.peladas=(p.data||[]).map(pelFromRow);S.batalhas=(b.data||[]).map(batFromRow)}
-async function carregarMinhas(){G.minhas={};if(!G.user)return;const {data}=await sb.from('membros').select('pelada_id,papel').eq('user_id',G.user.id);(data||[]).forEach(m=>G.minhas[m.pelada_id]=m.papel)}
+async function carregarMinhas(){G.minhas={};G.pedidos={};if(!G.user)return;const [a,b]=await Promise.all([sb.from('membros').select('pelada_id,papel').eq('user_id',G.user.id),sb.from('solicitacoes').select('pelada_id').eq('user_id',G.user.id)]);(a.data||[]).forEach(m=>G.minhas[m.pelada_id]=m.papel);(b.data||[]).forEach(x=>G.pedidos[x.pelada_id]=1)}
 async function abrirPelada(pid){if(!G.minhas[pid])return;G.loading=true;render();S.atual=pid;try{localStorage.setItem(K+'_pel',pid)}catch(e){}
  const adm=G.minhas[pid]==='admin';
  const [j,n,r,g]=await Promise.all([sb.from('jogadores').select('*').eq('pelada_id',pid),adm?sb.from('notas').select('*').eq('pelada_id',pid):Promise.resolve({data:[]}),sb.from('rodadas').select('*').eq('pelada_id',pid),sb.from('jogos').select('*').eq('pelada_id',pid).order('ordem')]);
@@ -760,8 +772,8 @@ async function abrirPelada(pid){if(!G.minhas[pid])return;G.loading=true;render()
  S.rodadas=(r.data||[]).map(rodFromRow);(g.data||[]).forEach(x=>{const rr=S.rodadas.find(q=>q.id===x.rodada_id);if(rr)rr.jogos.push(jogoFromRow(x))});
  resetLast();assinar(pid);G.loading=false;G.view='app';U.tab='home';U.per=null;U.rodada=null;U.mais=null;U.bat=null;G.membros=[];G.codigo=null;
  if(adm)carregarMembros();render()}
-async function carregarMembros(){const pid=S.atual;const [m,c]=await Promise.all([sb.from('membros').select('*').eq('pelada_id',pid).order('entrou_em'),sb.from('convites').select('codigo').eq('pelada_id',pid).maybeSingle()]);
- G.membros=m.data||[];G.codigo=c.data&&c.data.codigo;if(U.mais==='convidar')render()}
+async function carregarMembros(){const pid=S.atual;const [m,c,q]=await Promise.all([sb.from('membros').select('*').eq('pelada_id',pid).order('entrou_em'),sb.from('convites').select('codigo').eq('pelada_id',pid).maybeSingle(),sb.from('solicitacoes').select('*').eq('pelada_id',pid).order('criado_em')]);
+ G.membros=m.data||[];G.codigo=c.data&&c.data.codigo;G.pedidosPel=q.data||[];if(G.view==='app')render()}
 async function posLogin(){await carregarMinhas();
  if(G.convite){const c=G.convite;G.convite=null;G.conviteInfo=null;const {data,error}=await sb.rpc('entrar_convite',{c});
   if(error){toast('Convite inválido ou expirado.')}else{await carregarMinhas();toast('Pronto! Você entrou na pelada.');return abrirPelada(data)}}
@@ -781,22 +793,25 @@ async function boot(){render();
  if(G.user)await posLogin();else{G.loading=false;G.view='vitrine';render();if(G.conviteInfo)openSheet('auth',{modo:'criar'})}}
 
 /* ============ VITRINE (todas as peladas) ============ */
-function headerVit(){const u=G.user;return `<header class="top"><div class="brand"><div class="mark">${I.ball.replace('<svg','<svg width="24" height="24" style="color:#0B0B0A"')}</div><div class="brand-t"><div class="eyebrow">Todas as peladas</div><div class="brand-n" style="font-size:18px">Pelada Organizada OFC</div></div></div>${u?`<button class="mode" data-a="conta">${esc(iniciais(nomeUser()))}</button>`:`<button class="mode on" data-a="login">Entrar</button>`}</header>`}
+function headerVit(){const u=G.user;return `<header class="top"><div class="brand"><div class="mark">${I.ball.replace('<svg','<svg width="24" height="24" style="color:#0B0B0A"')}</div><div class="brand-t"><div class="eyebrow">Todas as peladas</div><div class="brand-n" style="font-size:16px">Pelada Organizada OFC</div></div></div>${u?`<button class="mode" data-a="conta">${esc(iniciais(nomeUser()))}</button>`:`<button class="mode on" data-a="login">Entrar</button>`}</header>`}
 const nomeUser=()=>G.user?((G.user.user_metadata&&G.user.user_metadata.nome)||G.user.email||''):'';
 function recordBat(pid){const r=rankBatalhas().find(x=>x.id===pid);return r&&r.j?`${r.v}V ${r.e}E ${r.d}D`:'Sem batalhas'}
 function vVitrine(){let h='';const u=G.user;const minhas=S.peladas.filter(p=>G.minhas[p.id]);
  if(G.conviteInfo&&!u)h+=`<div class="card stack" style="margin-top:12px;border-color:var(--y)"><div class="row"><div class="mark" style="width:48px;height:48px;border-radius:14px">${logoHTML(G.conviteInfo,48)}</div><div class="grow"><div class="lbl">Você foi convidado</div><h2 style="margin-top:3px">${esc(G.conviteInfo.nome)}</h2></div></div><button class="btn block" data-a="login" data-m="criar">Criar conta e entrar</button><button class="btn ghost block" data-a="login">Já tenho conta</button></div>`;
- h+=`<section class="vhero"><div class="lbl" style="color:var(--y)">Ranking · Sorteio · Placar ao vivo · Batalhas</div><h1>Sua pelada<br>organizada.</h1><p class="mu">Cada turma no seu canto. Aqui embaixo, todas as peladas que já estão no app.</p>
- ${u?`<div class="row wrap"><button class="btn" data-a="novaPel">+ Cadastrar minha pelada</button><button class="btn ghost" data-a="temConvite">Tenho um convite</button></div>`:`<div class="row wrap"><button class="btn" data-a="login" data-m="criar">Criar conta</button><button class="btn ghost" data-a="login">Entrar</button></div>`}</section>`;
- if(minhas.length)h+=`<section class="sec"><h2>Minhas peladas</h2><div class="stack">${minhas.map(p=>`<button class="rc" data-a="trocarPel" data-id="${p.id}"><div class="thumb" style="width:56px;height:56px;background:var(--y)">${logoHTML(p,56)}</div><div class="grow"><h3>${esc(p.nome)}</h3><div class="mu small">${esc(p.cidade)}/${p.uf} · ${G.minhas[p.id]==='admin'?'<b style="color:var(--y)">Admin</b>':'Jogador'}</div></div>${I.chev}</button>`).join('')}</div></section>`;
- const vagas=S.batalhas.filter(b=>b.status==='vaga'&&P(b.a));
- h+=`<section class="sec"><div class="seg"><button class="${G.vit==='peladas'?'on':''}" data-a="vit" data-v="peladas">Peladas</button><button class="${G.vit==='bat'?'on':''}" data-a="vit" data-v="bat">Ranking de batalhas</button><button class="${G.vit==='vagas'?'on':''}" data-a="vit" data-v="vagas">Vagas${vagas.length?' · '+vagas.length:''}</button></div>`;
+ h+=`<section class="vtop"><h1>Encontre sua<br><span>pelada.</span></h1><p class="mu">Toque no escudo da sua pelada e peça pra entrar. O admin aprova e pronto.</p>
+ ${u?'':`<div class="row wrap"><button class="btn" data-a="login" data-m="criar">Criar conta</button><button class="btn ghost" data-a="login">Entrar</button></div>`}</section>`;
+ if(minhas.length)h+=`<section class="sec"><div class="lbl">Minhas peladas</div><div class="minhas">${minhas.map(p=>`<button class="mchip" data-a="trocarPel" data-id="${p.id}"><span class="plogo sm">${logoHTML(p,36)}</span><span class="grow"><b>${esc(p.nome)}</b><span class="mu small">${G.minhas[p.id]==='admin'?'Admin':'Jogador'}</span></span>${I.chev}</button>`).join('')}</div></section>`;
  const ufs=[...new Set(S.peladas.map(p=>p.uf))].sort();const cids=[...new Set(S.peladas.filter(p=>!G.uf||p.uf===G.uf).map(p=>p.cidade).filter(Boolean))].sort();
- const filt=`<div class="row"><select id="fUf" data-f="fUf" style="width:110px"><option value="">Estado</option>${ufs.map(x=>`<option ${G.uf===x?'selected':''}>${x}</option>`).join('')}</select><select id="fCid" data-f="fCid" class="grow"><option value="">Todas as cidades</option>${cids.map(x=>`<option ${G.cidade===x?'selected':''}>${esc(x)}</option>`).join('')}</select></div>`;
- const okP=p=>(!G.uf||p.uf===G.uf)&&(!G.cidade||p.cidade===G.cidade);
- if(G.vit==='peladas'){const ps=S.peladas.filter(okP);h+=filt+(ps.length?`<div class="pgrid">${ps.map(p=>`<button class="pcard" data-a="verPel" data-id="${p.id}"><div class="plogo">${logoHTML(p,64)}</div><b>${esc(p.nome)}</b><span class="mu small">${esc(p.cidade||'—')}/${p.uf}</span><span class="pill ${G.minhas[p.id]?'y':'n'}">${G.minhas[p.id]?'Sua':recordBat(p.id)}</span></button>`).join('')}</div>`:empty(S.peladas.length?'Nenhuma pelada nesse filtro.':'Nenhuma pelada cadastrada ainda. Seja a primeira!'))}
- else if(G.vit==='bat'){const rows=rankBatalhas().filter(r=>r.j>0&&okP(P(r.id)));h+=filt+(rows.length?tabelaBat(rows):empty('Nenhuma batalha confirmada ainda.'))+'<div class="mu small">Vitória 3 · Empate 1 · Derrota 0. Só conta batalha confirmada pelas duas peladas.</div>'}
- else{const vs=vagas.filter(b=>okP(P(b.a)));h+=filt+(vs.length?vs.map(b=>cardVaga(b)).join(''):empty('Nenhuma vaga aberta agora. Admins podem abrir uma em Mais → Batalhas.'))}
+ const okP=p=>!!p&&(!G.uf||p.uf===G.uf)&&(!G.cidade||p.cidade===G.cidade);
+ const ps=S.peladas.filter(okP);
+ h+=`<section class="sec"><div class="sec-h"><h2>Peladas</h2><span class="mu small">${ps.length}</span></div>
+ <div class="row"><select id="fUf" data-f="fUf" style="width:118px"><option value="">Estado</option>${ufs.map(x=>`<option ${G.uf===x?'selected':''}>${x}</option>`).join('')}</select><select id="fCid" data-f="fCid" class="grow"><option value="">Todas as cidades</option>${cids.map(x=>`<option ${G.cidade===x?'selected':''}>${esc(x)}</option>`).join('')}</select></div>
+ ${ps.length?`<div class="pgrid">${ps.map(p=>{const st=G.minhas[p.id]?'Sua':G.pedidos[p.id]?'Pedido enviado':'';return `<button class="pcard" data-a="verPel" data-id="${p.id}"><span class="plogo">${logoHTML(p,76)}</span><b>${esc(p.nome)}</b><span class="cid">${esc(p.cidade||'—')} · ${p.uf}</span>${st?`<span class="pill ${G.minhas[p.id]?'y':'n'}">${st}</span>`:''}</button>`}).join('')}</div>`:empty(S.peladas.length?'Nenhuma pelada nesse filtro.':'Nenhuma pelada cadastrada ainda. Seja a primeira!')}</section>`;
+ h+=`<section class="sec"><div class="card stack cta"><b>Organiza uma pelada?</b><div class="mu small">Cadastre a sua, vire admin e chame a galera.</div><div class="row wrap"><button class="btn sm" data-a="novaPel">+ Cadastrar minha pelada</button>${u?'<button class="btn sm ghost" data-a="temConvite">Tenho um convite</button>':''}</div></div></section>`;
+ const vagas=S.batalhas.filter(b=>b.status==='vaga'&&P(b.a));
+ h+=`<section class="sec"><div class="seg"><button class="${G.vit!=='vagas'?'on':''}" data-a="vit" data-v="bat">Ranking de batalhas</button><button class="${G.vit==='vagas'?'on':''}" data-a="vit" data-v="vagas">Vagas abertas${vagas.length?' · '+vagas.length:''}</button></div>`;
+ if(G.vit!=='vagas'){const rows=rankBatalhas().filter(r=>r.j>0&&okP(P(r.id)));h+=(rows.length?tabelaBat(rows):empty('Nenhuma batalha confirmada ainda.'))+'<div class="mu small">Vitória 3 · Empate 1 · Derrota 0. Só conta batalha confirmada pelas duas peladas.</div>'}
+ else{const vs=vagas.filter(b=>okP(P(b.a)));h+=vs.length?vs.map(b=>cardVaga(b)).join(''):empty('Nenhuma vaga aberta agora.')}
  return h+'</section><div class="mu small" style="text-align:center;margin-top:24px">Pelada Organizada OFC</div>'}
 function cardVaga(b){const A=P(b.a);const adm=minhasAdmin().filter(id=>id!==b.a);
  return `<div class="card stack"><div class="row"><div class="mark" style="width:42px;height:42px;border-radius:12px">${logoHTML(A,42)}</div><div class="grow"><b>${esc(A.nome)}</b><div class="mu small">${esc(A.cidade)}/${A.uf}</div></div><span class="pill y">Procura adversário</span></div>
@@ -810,10 +825,13 @@ function vConvidar(){const l=linkConvite();const eu=G.user&&G.user.id;
  <div class="grid2"><button class="btn" data-a="copiaLink">Copiar link</button><a class="btn ghost" href="https://wa.me/?text=${encodeURIComponent('Entra na nossa pelada no Pelada Organizada OFC: '+l)}" target="_blank" rel="noopener">WhatsApp</a></div>
  <div class="mu small">Quem abrir o link cria a conta e já cai direto na <b>${esc(pel().nome)}</b> como jogador. Jogador vê tudo e só mexe no placar.</div>
  <button class="link" style="text-align:left" data-a="novoLink">Gerar link novo (o antigo para de funcionar)</button></div></div>`;
+ h=h.replace('</h1></div>','</h1></div>'+pedidosHTML());
  h+=`<div class="sec"><div class="sec-h"><h2>Membros</h2><span class="mu small">${G.membros.length}</span></div><div class="card" style="padding:2px 14px">${G.membros.map(m=>`<div class="lr"><div class="av sm">${esc(iniciais(m.nome||'?'))}</div><div class="grow"><b>${esc(m.nome||'Sem nome')}</b>${m.user_id===eu?' <span class="mu small">(você)</span>':''}<div><span class="pill ${m.papel==='admin'?'y':'n'}">${m.papel==='admin'?'Admin':'Jogador'}</span></div></div>
  ${m.user_id!==eu?`<div class="stack" style="gap:6px;align-items:flex-end"><button class="btn sm ghost" data-a="papel" data-u="${m.user_id}" data-v="${m.papel==='admin'?'jogador':'admin'}">${m.papel==='admin'?'Tirar admin':'Tornar admin'}</button><button class="link" data-a="removeMembro" data-u="${m.user_id}">Remover</button></div>`:''}</div>`).join('')||'<div class="mu small" style="padding:12px 0">Carregando…</div>'}</div></div>`;
  return h}
 
+function pedidosHTML(){const ps=G.pedidosPel;if(!ps.length)return'';
+ return `<div class="sec"><div class="sec-h"><h2>Pedidos pra entrar</h2><span class="pill y">${ps.length}</span></div><div class="card" style="padding:2px 14px">${ps.map(x=>`<div class="lr"><div class="av sm">${esc(iniciais(x.nome||'?'))}</div><div class="grow"><b>${esc(x.nome||'Sem nome')}</b><div class="mu small">pediu em ${new Date(x.criado_em).toLocaleDateString('pt-BR')}</div></div><button class="btn sm" data-a="aceitaPedido" data-u="${x.user_id}">Aceitar</button><button class="btn sm danger" data-a="recusaPedido" data-u="${x.user_id}" aria-label="Recusar">${I.x}</button></div>`).join('')}</div></div>`}
 /* ============ BATALHAS (da pelada atual) ============ */
 const batOk=b=>b.status==='marcada'&&b.okA&&b.okB;
 function vBatalhas(){const ab=U.bat&&S.batalhas.find(x=>x.id===U.bat);if(ab)return vBatalha(ab);const me=S.atual;const adm=isAdm();
@@ -865,7 +883,7 @@ function shVerPel(){const p=P(U.sheet.id);if(!p)return'';const r=rankBatalhas().
  return `<div class="row" style="gap:14px"><div class="mark" style="width:72px;height:72px;border-radius:20px">${logoHTML(p,72)}</div><div class="grow"><h2>${esc(p.nome)}</h2><div class="mu">${esc(p.cidade)}/${p.uf} · toda ${DIAS[p.dia].toLowerCase()}</div></div></div>
  <div class="kpis" style="grid-template-columns:repeat(4,1fr)">${[['Jogos',r.j],['V',r.v||0],['E',r.e||0],['D',r.d||0]].map(([l,v])=>`<div class="kpi" style="align-items:center"><span class="lbl" style="font-size:10.5px">${l}</span><span class="v" style="font-size:24px">${v}</span></div>`).join('')}</div>
  ${ult.length?`<div class="card" style="padding:2px 14px">${ult.map(b=>{const A=P(b.a),B=P(b.b);return `<div class="gm"><div class="t ${b.ga>b.gb?'w':''}"><span>${esc(A.nome)}</span></div><div class="s">${b.ga} × ${b.gb}</div><div class="t r ${b.gb>b.ga?'w':''}"><span>${esc(B.nome)}</span></div></div>`}).join('')}</div>`:''}
- ${G.minhas[p.id]?`<button class="btn block" data-a="trocarPel" data-id="${p.id}">Abrir minha pelada</button>`:adm.length?`<button class="btn block" data-a="novoDesafio" data-alvo="${p.id}">Desafiar essa pelada</button>`:`<div class="mu small">Ranking, jogadores e rodadas ficam visíveis só pra quem é da pelada.</div>`}
+ ${G.minhas[p.id]?`<button class="btn block" data-a="trocarPel" data-id="${p.id}">Abrir minha pelada</button>`:`${!G.user?`<button class="btn block" data-a="login" data-m="criar">Criar conta pra pedir entrada</button>`:G.pedidos[p.id]?`<div class="card row"><div class="grow"><b>Pedido enviado ✅</b><div class="mu small">Agora é com o admin. Quando ele aceitar, a pelada aparece em Minhas peladas.</div></div></div><button class="link" data-a="cancelaPedido" data-id="${p.id}">Cancelar pedido</button>`:`<button class="btn block" data-a="pedirEntrada" data-id="${p.id}">Pedir pra entrar como jogador</button>`}${adm.length?`<button class="btn line block" data-a="novoDesafio" data-alvo="${p.id}">Desafiar essa pelada</button>`:''}<div class="mu small">Ranking, jogadores e rodadas ficam visíveis só pra quem é da pelada.</div>`}
  <button class="btn ghost block" data-a="fechaSheet">Fechar</button>`}
 function shDesafio(){const me=U.sheet.de||S.atual||minhasAdmin()[0];const alvo=U.sheet.alvo;const vaga=U.sheet.vaga;const adm=minhasAdmin();
  const outras=S.peladas.filter(p=>p.id!==me).sort((a,b)=>(a.uf+a.cidade+a.nome).localeCompare(b.uf+b.cidade+b.nome));
@@ -1043,6 +1061,11 @@ const A={
   if(v<0&&!x[d.k])return;x[d.k]+=v;if(d.k==='g'){const k=b.a===S.atual?'ga':'gb';b[k]=Math.max(0,b[k]+v)}
   b.okA=b.okB=false;save();render();if(v>0&&d.k==='g')toast('GOOOL do '+nomeJ(d.j)+'!')},
  batConf(d){const b=S.batalhas.find(x=>x.id===d.id);const k=b.a===S.atual?'okA':'okB';b[k]=!b[k];save();render();if(b.okA&&b.okB)toast('Batalha confirmada! Entrou no ranking.')},
+ async pedirEntrada(d){if(!G.user)return openSheet('auth',{modo:'criar'});const {error}=await sb.from('solicitacoes').insert({pelada_id:d.id,user_id:G.user.id,nome:nomeUser()});
+  if(error&&!/duplicate/i.test(error.message))return toast('Não deu: '+error.message);G.pedidos[d.id]=1;renderSheet();render();toast('Pedido enviado! O admin vai aprovar.')},
+ async cancelaPedido(d){await sb.from('solicitacoes').delete().eq('pelada_id',d.id).eq('user_id',G.user.id);delete G.pedidos[d.id];renderSheet();render()},
+ async aceitaPedido(d){const {error}=await sb.rpc('aceitar_pedido',{p:S.atual,u:d.u});if(error)return toast('Não deu: '+error.message);toast('Aceito! Agora ele é jogador da pelada.');carregarMembros()},
+ async recusaPedido(d){const {error}=await sb.from('solicitacoes').delete().eq('pelada_id',S.atual).eq('user_id',d.u);if(error)return toast('Não deu.');toast('Pedido recusado.');carregarMembros()},
  scrim(d,e){if(e.target.classList.contains('scrim'))closeSheet()},
  fechaSheet(){closeSheet()}
 };
