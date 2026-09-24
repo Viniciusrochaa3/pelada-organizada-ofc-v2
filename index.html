@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <meta name="description" content="Ranking, sorteio, placar ao vivo e batalhas entre peladas.">
 <title>Pelada Organizada OFC</title>
 <meta name="theme-color" content="#0B0B0A">
@@ -319,15 +319,22 @@ a.btn{text-decoration:none}
 .kpi .n{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (max-width:370px){.score{font-size:68px}.picks{grid-template-columns:1fr}}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none;touch-action:manipulation}
+body{position:fixed;inset:0;width:100%}
+#scroller{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-top:env(safe-area-inset-top,0px)}
+.top{top:0}
+input,select,textarea{font-size:16px}
+.app{overflow-x:clip}
 </style>
 
 </head><body>
-<div class="app" id="app"></div>
+<div id="scroller"><div class="app" id="app"></div></div>
 <nav class="nav" id="nav"></nav>
 <div id="sheet"></div>
 <div id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1/dist/umd/supabase.js"></script>
 <script>
+const SCRL=document.getElementById('scroller');
 /* ============ CONSTANTES ============ */
 const K='pelada_organizada_ofc_v1';
 const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -732,7 +739,7 @@ function fimArraste(){document.querySelectorAll('.drop-on').forEach(x=>x.classLi
 document.addEventListener('pointerdown',e=>{const c=e.target.closest('[data-drag]');if(!c||!isAdm()||(e.pointerType==='mouse'&&e.button!==0))return;DR={id:c.dataset.drag,x:e.clientX,y:e.clientY,el:c,on:false}});
 document.addEventListener('pointermove',e=>{if(!DR)return;
  if(!DR.on){if(Math.hypot(e.clientX-DR.x,e.clientY-DR.y)<7)return;DR.on=true;const g=DR.el.cloneNode(true);g.className='tp ghost-drag';g.removeAttribute('data-a');g.removeAttribute('data-drag');document.body.appendChild(g);DR.g=g;document.documentElement.classList.add('arrastando');
-  (function loop(){if(!DR||!DR.on)return;const y=DR.cy||0;if(y<90)scrollBy(0,-14);else if(y>innerHeight-150)scrollBy(0,14);requestAnimationFrame(loop)})()}
+  (function loop(){if(!DR||!DR.on)return;const y=DR.cy||0;if(y<90)SCRL.scrollBy(0,-14);else if(y>innerHeight-150)SCRL.scrollBy(0,14);requestAnimationFrame(loop)})()}
  e.preventDefault();DR.cy=e.clientY;DR.g.style.left=e.clientX+'px';DR.g.style.top=e.clientY+'px';
  const z=(document.elementFromPoint(e.clientX,e.clientY)||{closest(){return null}}).closest('[data-drop]');document.querySelectorAll('.drop-on').forEach(x=>{if(x!==z)x.classList.remove('drop-on')});if(z)z.classList.add('drop-on')},{passive:false});
 document.addEventListener('pointerup',e=>{if(!DR)return;if(!DR.on){DR=null;return}const id=DR.id;const z=(document.elementFromPoint(e.clientX,e.clientY)||{closest(){return null}}).closest('[data-drop]');noClick=Date.now();fimArraste();if(z)moverPara(id,z.dataset.drop)});
@@ -995,12 +1002,12 @@ function lerImagem(file,max,cb){const fr=new FileReader();fr.onload=()=>{const i
 
 /* ============ AÇÕES ============ */
 const A={
- tab(d){U.tab=d.t;if(d.t!=='rodadas')U.rodada=null;if(d.t==='mais')U.mais=null;try{localStorage.setItem(K+'_tab',d.t)}catch(e){}scrollTo(0,0);render()},
+ tab(d){U.tab=d.t;if(d.t!=='rodadas')U.rodada=null;if(d.t==='mais')U.mais=null;try{localStorage.setItem(K+'_tab',d.t)}catch(e){}SCRL.scrollTo(0,0);render()},
  rk(d){U.rk=d.v;render()},
  perTipo(d){U.per.tipo=d.v;render()},
  perfil(d){openSheet('perfil',{id:d.id})},
- irMais(d){U.mais=d.v||null;U.bat=null;U.tab='mais';scrollTo(0,0);render()},
- jogoTab(d){U.jogo=d.v;U.sel=null;scrollTo(0,0);render()},
+ irMais(d){U.mais=d.v||null;U.bat=null;U.tab='mais';SCRL.scrollTo(0,0);render()},
+ jogoTab(d){U.jogo=d.v;U.sel=null;SCRL.scrollTo(0,0);render()},
  novaRodada(){const i=$('#novaData');const data=(i&&i.value)||hojeISO();if(aberta()){U.tab='jogo';return render()}
   if(!elenco().length){U.tab='mais';U.mais='jogadores';toast('Cadastre os jogadores primeiro.');return render()}
   S.rodadas.push({id:uid(),peladaId:S.atual,data,presentes:[],times:[],jogos:[],manual:{},fechada:false,foto:null,coment:{},campeaoId:null});U.tab='jogo';U.jogo='sorteio';U.nt=null;save();render()},
@@ -1034,7 +1041,7 @@ const A={
  fecharDia(){openSheet('conf',{titulo:'Fechar o dia?',texto:'Calcula o campeão, os pontos, sorteia as frases da resenha e joga tudo no ranking. Dá pra reabrir depois se precisar.',ok:'Fechar o dia',acao:'fecharDia'})},
  apagarRodada(d){openSheet('conf',{titulo:'Apagar esta rodada?',texto:'Todos os jogos e a súmula desse dia serão apagados.',ok:'Apagar rodada',perigo:1,acao:'apagarRodada',id:d.id})},
  rodView(d){U.rodView=d.v;render()},
- abrirRodada(d){U.tab='rodadas';U.rodada=d.id;scrollTo(0,0);render()},
+ abrirRodada(d){U.tab='rodadas';U.rodada=d.id;SCRL.scrollTo(0,0);render()},
  fecharRodada(){U.rodada=null;render()},
  reabrir(d){if(aberta())return toast('Já tem uma rodada aberta. Feche ela antes.');const r=R(d.id);r.fechada=false;U.tab='jogo';U.jogo='sumula';U.rodada=null;save();render();toast('Rodada reaberta. Corrija e feche de novo.')},
  refazComent(){const r=R(U.rodada);r.coment=gerarComentarios(r);save();render()},
@@ -1052,7 +1059,7 @@ const A={
    if(U.sheet.sorteio){const r=aberta();if(r&&!r.presentes.includes(nj.id)){r.presentes.push(nj.id);U.nt=null}}}
   const sorteio=U.sheet.sorteio;save();closeSheet();render();toast(id?'Jogador atualizado.':(avu?(sorteio?'Avulso cadastrado e marcado como presente.':'Avulso cadastrado.'):'Jogador cadastrado.'))},
  delJog(d){openSheet('conf',{titulo:'Remover jogador?',texto:'Ele sai do elenco e dos rankings.',ok:'Remover',perigo:1,acao:'delJog',id:d.id})},
- abrirBat(d){U.bat=d.id;U.batLado='a';scrollTo(0,0);render()},
+ abrirBat(d){U.bat=d.id;U.batLado='a';SCRL.scrollTo(0,0);render()},
  fechaBat(){U.bat=null;render()},
  batLado(d){U.batLado=d.v;render()},
  reabrirBat(d){const b=S.batalhas.find(x=>x.id===d.id);if(!isAdm())return;b.okA=b.okB=false;save();render();toast('Batalha reaberta. As duas peladas confirmam de novo.')},
@@ -1073,7 +1080,7 @@ const A={
  frasesPadrao(){pel().frases=JSON.parse(JSON.stringify(FRASES_PADRAO));save();render();toast('Frases originais de volta.')},
  confOk(){const c=U.sheet;closeSheet();const r=aberta();
   if(c.acao==='montar'){montarTimes();return}
-  if(c.acao==='fecharDia'){const cp=campeaoCalc(r);r.campeaoId=cp?cp.id:null;r.fechada=true;r.coment=gerarComentarios(r);U.per=null;U.tab='rodadas';U.rodada=r.id;save();scrollTo(0,0);render();toast('Dia fechado! Ranking atualizado.')}
+  if(c.acao==='fecharDia'){const cp=campeaoCalc(r);r.campeaoId=cp?cp.id:null;r.fechada=true;r.coment=gerarComentarios(r);U.per=null;U.tab='rodadas';U.rodada=r.id;save();SCRL.scrollTo(0,0);render();toast('Dia fechado! Ranking atualizado.')}
   else if(c.acao==='cancelJogo'){r.jogos=r.jogos.filter(g=>g.fim);save();render()}
   else if(c.acao==='apagarRodada'){S.rodadas=S.rodadas.filter(x=>x.id!==c.id);save();render()}
   else if(c.acao==='delJog'){S.jogadores=S.jogadores.filter(j=>j.id!==c.id);save();render()}
@@ -1085,7 +1092,7 @@ const A={
  vit(d){G.vit=d.v;render()},
  verPel(d){openSheet('verPel',{id:d.id})},
  temConvite(){openSheet('convite')},
- irVitrine(){G.view='vitrine';closeSheet();scrollTo(0,0);render()},
+ irVitrine(){G.view='vitrine';closeSheet();SCRL.scrollTo(0,0);render()},
  async usarConvite(){let c=$('#cvCod').value.trim();const m=c.match(/convite=([a-z0-9]+)/i);if(m)c=m[1];if(!c)return toast('Cole o link ou o código.');
   const {data,error}=await sb.rpc('entrar_convite',{c});if(error)return toast('Convite inválido.');closeSheet();await carregarMinhas();await carregarVitrine();toast('Você entrou na pelada!');abrirPelada(data)},
  trocarPel(d){closeSheet();if(G.minhas[d.id])abrirPelada(d.id)},
