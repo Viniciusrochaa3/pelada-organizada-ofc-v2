@@ -231,6 +231,13 @@ tr.tap{cursor:pointer}
 .share{display:flex;flex-wrap:wrap;gap:8px}
 .share .btn{flex:1 1 auto}
 .seg button.on .sw{border-color:rgba(0,0,0,.55)}
+.tp[data-drag]{touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+.ghost-drag{position:fixed;z-index:200;pointer-events:none;transform:translate(-50%,-60%) scale(1.12);background:var(--y);color:var(--yk);border-color:var(--y);box-shadow:0 12px 30px rgba(0,0,0,.55)}
+.ghost-drag .nota{background:var(--yk);color:var(--y)}
+html.arrastando .tp[data-drag]{opacity:.55}
+.team.drop-on{border-color:var(--y)!important;background:var(--ysoft)}
+.team.pool{border-style:dashed}
+.team-h .x{width:28px;height:28px;display:grid;place-items:center;border-radius:8px}
 .brand{text-align:left}
 .netdot{font-family:var(--num);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--r);background:var(--rsoft);padding:4px 8px;border-radius:999px}
 .loading{min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
@@ -552,14 +559,17 @@ function vSorteio(r){const p=pel();const el=elenco();const n=r.presentes.length;
   <div class="sec-h" style="margin-top:6px"><div class="lbl">Avulsos</div><button class="btn sm line" data-a="novoAvulso">+ Avulso</button></div>
   ${av.length?`<div class="picks">${av.map(pk).join('')}</div>`:'<div class="mu small">Chegou alguém de fora? Toque em <b>+ Avulso</b>: ele entra no sorteio e no placar.</div>'}`})()}`;
  h+=`<div class="card stack"><div class="row"><div class="grow"><div class="lbl">Quantos times?</div><div class="mu small">Sugestão: ${ntSug} (${p.porTime} por time)</div></div><div class="stp"><button data-a="nt" data-v="-1">−</button><b>${U.nt}</b><button data-a="nt" data-v="1">+</button></div></div>
- <button class="btn block" data-a="sortear" ${n<2?'disabled':''}>${I.shuffle} ${r.times.length?'Sortear de novo':'Sortear times'}</button></div>`;
+ <div class="grid2"><button class="btn" data-a="sortear" ${n<2?'disabled':''}>${I.shuffle} ${r.times.length?'Sortear de novo':'Sortear'}</button><button class="btn line" data-a="montar" ${n<2?'disabled':''}>✋ Montar na mão</button></div>
+ <div class="mu small">Sortear equilibra pelas notas. Montar na mão: você arrasta cada nome pro time que quiser.</div></div>`;
  if(r.times.length){const jogou=r.jogos.length>0;
-  h+=`<div class="sec-h" style="margin-top:8px"><h2>Times</h2><span class="mu small">Toque num jogador e depois no time pra trocar</span></div>`;
+  h+=`<div class="sec-h" style="margin-top:8px"><h2>Times</h2><button class="btn sm ghost" data-a="addTime">+ Time</button></div><div class="mu small">✋ <b>Arraste o nome</b> com o dedo até o time. Também dá pra tocar no nome e depois no time.</div>`;
+  const semTime=r.presentes.filter(id=>J(id)&&!r.times.some(t=>t.jogadores.includes(id)));
+  h+=`<div class="team pool" data-drop="pool" ${U.sel?`data-a="mover" data-t="pool"`:''}><div class="team-h"><b class="grow" style="font-family:var(--disp);font-size:18px;text-transform:uppercase">Sem time</b><span class="pill ${semTime.length?'y':'n'}">${semTime.length}</span></div><div class="team-p">${semTime.map(id=>`<button class="tp ${U.sel===id?'sel':''}" data-a="selJ" data-id="${id}" data-drag="${id}">${esc(nomeJ(id))} <span class="nota">${fmtNota((J(id)||{}).nota)}</span></button>`).join('')||'<span class="mu small">Todo mundo já tem time ✅</span>'}</div></div>`;
   if(jogou)h+=`<div class="mu small">Já tem jogo registrado: mudanças valem pros próximos jogos.</div>`;
   const somas=r.times.map(somaNota);
-  h+=r.times.map((t,ti)=>`<div class="team" style="border-color:${U.sel?'var(--y)':'var(--line)'}" ${U.sel?`data-a="mover" data-t="${t.id}"`:''}>
-   <div class="team-h"><span class="sw" style="background:${t.cor}"></span><input id="tn_${t.id}" data-f="tnome" data-id="${t.id}" value="${esc(t.nome)}" class="grow" aria-label="Nome do time"><span class="pill n">${cor(t.cor).n}</span><span class="nota">Σ ${fmtNota(somas[ti])}</span></div>
-   <div class="team-p">${t.jogadores.map(id=>`<button class="tp ${U.sel===id?'sel':''}" data-a="selJ" data-id="${id}">${esc(nomeJ(id))} <span class="nota">${fmtNota((J(id)||{}).nota)}</span></button>`).join('')||'<span class="mu small">Vazio</span>'}</div>
+  h+=r.times.map((t,ti)=>`<div class="team" data-drop="${t.id}" style="border-color:${U.sel?'var(--y)':'var(--line)'}" ${U.sel?`data-a="mover" data-t="${t.id}"`:''}>
+   <div class="team-h"><span class="sw" style="background:${t.cor}"></span><input id="tn_${t.id}" data-f="tnome" data-id="${t.id}" value="${esc(t.nome)}" class="grow" aria-label="Nome do time"><span class="pill n">${t.jogadores.length} · ${cor(t.cor).n}</span><span class="nota">Σ ${fmtNota(somas[ti])}</span>${t.jogadores.length?'':`<button class="x" data-a="delTime" data-id="${t.id}" aria-label="Remover time" style="color:var(--mu)">${I.x}</button>`}</div>
+   <div class="team-p">${t.jogadores.map(id=>`<button class="tp ${U.sel===id?'sel':''}" data-a="selJ" data-id="${id}" data-drag="${id}">${esc(nomeJ(id))} <span class="nota">${fmtNota((J(id)||{}).nota)}</span></button>`).join('')||'<span class="mu small">Arraste os nomes pra cá</span>'}</div>
    <div class="row" style="padding:0 14px 12px"><div class="swatches">${CORES.map(c=>`<button class="swb ${t.cor===c.c?'on':''}" style="background:${c.c}" data-a="tcor" data-id="${t.id}" data-c="${c.c}" aria-label="${c.n}"></button>`).join('')}</div><span class="grow"></span><span class="mu small">média ${fmtNota((somas[ti]/Math.max(1,t.jogadores.length)).toFixed(1))}</span></div></div>`).join('');
   h+=`<button class="btn block" data-a="jogoTab" data-v="placar">Bora pro placar →</button>`}
  return h}
@@ -713,6 +723,20 @@ async function rkCanvas(){try{await document.fonts.ready}catch(e){}
 const rkNomeArq=()=>{const {per,k}=rkInfo();return `ranking-${k}-${per.tipo==='ano'?per.ano:per.ano+'-'+String(per.mes).padStart(2,'0')}.png`};
 function rkBlob(){return rkCanvas().then(c=>new Promise(r=>c.toBlob(r,'image/png')))}
 function baixarBlob(b,nome){const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=nome;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
+
+/* ============ MONTAR TIMES NA MÃO (arrastar) ============ */
+function montarTimes(){const r=aberta();const nt=Math.max(2,Math.min(8,U.nt||2));r.times=Array.from({length:nt},(_,i)=>({id:uid(),nome:'Time '+(i+1),cor:CORES[i%CORES.length].c,jogadores:[]}));U.sel=null;save();render();toast('Agora arraste cada nome pro time dele.')}
+function moverPara(id,dest){const r=aberta();if(!r)return;r.times.forEach(t=>t.jogadores=t.jogadores.filter(x=>x!==id));if(dest!=='pool'){const t=r.times.find(t=>t.id===dest);if(t)t.jogadores.push(id)}U.sel=null;save();render()}
+let DR=null,noClick=0;
+function fimArraste(){document.querySelectorAll('.drop-on').forEach(x=>x.classList.remove('drop-on'));document.documentElement.classList.remove('arrastando');if(DR&&DR.g)DR.g.remove();DR=null}
+document.addEventListener('pointerdown',e=>{const c=e.target.closest('[data-drag]');if(!c||!isAdm()||(e.pointerType==='mouse'&&e.button!==0))return;DR={id:c.dataset.drag,x:e.clientX,y:e.clientY,el:c,on:false}});
+document.addEventListener('pointermove',e=>{if(!DR)return;
+ if(!DR.on){if(Math.hypot(e.clientX-DR.x,e.clientY-DR.y)<7)return;DR.on=true;const g=DR.el.cloneNode(true);g.className='tp ghost-drag';g.removeAttribute('data-a');g.removeAttribute('data-drag');document.body.appendChild(g);DR.g=g;document.documentElement.classList.add('arrastando');
+  (function loop(){if(!DR||!DR.on)return;const y=DR.cy||0;if(y<90)scrollBy(0,-14);else if(y>innerHeight-150)scrollBy(0,14);requestAnimationFrame(loop)})()}
+ e.preventDefault();DR.cy=e.clientY;DR.g.style.left=e.clientX+'px';DR.g.style.top=e.clientY+'px';
+ const z=(document.elementFromPoint(e.clientX,e.clientY)||{closest(){return null}}).closest('[data-drop]');document.querySelectorAll('.drop-on').forEach(x=>{if(x!==z)x.classList.remove('drop-on')});if(z)z.classList.add('drop-on')},{passive:false});
+document.addEventListener('pointerup',e=>{if(!DR)return;if(!DR.on){DR=null;return}const id=DR.id;const z=(document.elementFromPoint(e.clientX,e.clientY)||{closest(){return null}}).closest('[data-drop]');noClick=Date.now();fimArraste();if(z)moverPara(id,z.dataset.drop)});
+document.addEventListener('pointercancel',()=>{if(DR)fimArraste()});
 
 /* ============ BANCO (SUPABASE) ============ */
 const SB_URL='https://hugopgcgagdkvztougbh.supabase.co',SB_KEY='sb_publishable_CqsOL7VH0xRDjmPoQmWqpQ_74OxX6gp';
@@ -980,13 +1004,16 @@ const A={
  novaRodada(){const i=$('#novaData');const data=(i&&i.value)||hojeISO();if(aberta()){U.tab='jogo';return render()}
   if(!elenco().length){U.tab='mais';U.mais='jogadores';toast('Cadastre os jogadores primeiro.');return render()}
   S.rodadas.push({id:uid(),peladaId:S.atual,data,presentes:[],times:[],jogos:[],manual:{},fechada:false,foto:null,coment:{},campeaoId:null});U.tab='jogo';U.jogo='sorteio';U.nt=null;save();render()},
- pres(d){const r=aberta();const i=r.presentes.indexOf(d.id);i<0?r.presentes.push(d.id):r.presentes.splice(i,1);U.nt=null;save();render()},
+ pres(d){const r=aberta();const i=r.presentes.indexOf(d.id);if(i<0)r.presentes.push(d.id);else{r.presentes.splice(i,1);r.times.forEach(t=>t.jogadores=t.jogadores.filter(x=>x!==d.id))}U.nt=null;save();render()},
  presTodos(){const r=aberta();r.presentes=[...new Set(r.presentes.concat(elenco().filter(j=>!j.avulso).map(j=>j.id)))];U.nt=null;save();render()},
  presNenhum(){const r=aberta();r.presentes=[];U.nt=null;save();render()},
  nt(d){U.nt=Math.max(2,Math.min(8,(U.nt||2)+Number(d.v)));render()},
  sortear(){const r=aberta();const nt=Math.min(U.nt||2,r.presentes.length);r.times=sortear(r.presentes,nt);U.sel=null;save();render();toast('Times sorteados e equilibrados.')},
  selJ(d,e){e.stopPropagation();U.sel=U.sel===d.id?null:d.id;render()},
- mover(d){if(!U.sel)return;const r=aberta();r.times.forEach(t=>t.jogadores=t.jogadores.filter(x=>x!==U.sel));r.times.find(t=>t.id===d.t).jogadores.push(U.sel);U.sel=null;save();render()},
+ mover(d){if(!U.sel)return;moverPara(U.sel,d.t)},
+ montar(){const r=aberta();if(r.times.some(t=>t.jogadores.length))return openSheet('conf',{titulo:'Montar do zero?',texto:'Os times atuais são desfeitos e todo mundo volta pro "Sem time".',ok:'Montar do zero',acao:'montar'});montarTimes()},
+ addTime(){const r=aberta();const i=r.times.length;if(i>=8)return toast('Máximo de 8 times.');r.times.push({id:uid(),nome:'Time '+(i+1),cor:CORES[i%CORES.length].c,jogadores:[]});save();render()},
+ delTime(d,e){e.stopPropagation();const r=aberta();r.times=r.times.filter(t=>t.id!==d.id||t.jogadores.length);save();render()},
  tcor(d,e){e.stopPropagation();const t=aberta().times.find(t=>t.id===d.id);t.cor=d.c;save();render()},
  comecarJogo(){const r=aberta();const[a,b]=U.novo;if(a===b)return toast('Escolha dois times diferentes.');const ta=r.times.find(t=>t.id===a),tb=r.times.find(t=>t.id===b);
   r.jogos.push({id:uid(),a,b,ga:0,gb:0,pa:[...ta.jogadores],pb:[...tb.jogadores],ev:[],fim:false,el:0,t0:null});U.novo=null;save();render()},
@@ -1045,6 +1072,7 @@ const A={
  durSet(d){if(!isAdm())return;pel().duracao=Number(d.v);save();render()},
  frasesPadrao(){pel().frases=JSON.parse(JSON.stringify(FRASES_PADRAO));save();render();toast('Frases originais de volta.')},
  confOk(){const c=U.sheet;closeSheet();const r=aberta();
+  if(c.acao==='montar'){montarTimes();return}
   if(c.acao==='fecharDia'){const cp=campeaoCalc(r);r.campeaoId=cp?cp.id:null;r.fechada=true;r.coment=gerarComentarios(r);U.per=null;U.tab='rodadas';U.rodada=r.id;save();scrollTo(0,0);render();toast('Dia fechado! Ranking atualizado.')}
   else if(c.acao==='cancelJogo'){r.jogos=r.jogos.filter(g=>g.fim);save();render()}
   else if(c.acao==='apagarRodada'){S.rodadas=S.rodadas.filter(x=>x.id!==c.id);save();render()}
@@ -1101,7 +1129,7 @@ const A={
  scrim(d,e){if(e.target.classList.contains('scrim'))closeSheet()},
  fechaSheet(){closeSheet()}
 };
-document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el)return;const f=A[el.dataset.a];if(f)f(el.dataset,e,el)});
+document.addEventListener('click',e=>{if(Date.now()-noClick<400)return;const el=e.target.closest('[data-a]');if(!el)return;const f=A[el.dataset.a];if(f)f(el.dataset,e,el)});
 document.addEventListener('change',e=>{const el=e.target;const f=el.dataset.f;
  if(el.dataset.up){const file=el.files&&el.files[0];if(!file)return;const k=el.dataset.up;
   lerImagem(file,k==='fotoRodada'?1100:400,url=>{if(k==='logo'){pel().logo=url;save();render()}else if(k==='fotoRodada'){R(el.dataset.id).foto=url;save();render();toast('Foto do campeão salva na rodada.')}else if(k==='fotoJog'){U.tmp.foto=url;renderSheet()}else if(k==='logoNova'){U.tmp.logo=url;renderSheet()}});return}
