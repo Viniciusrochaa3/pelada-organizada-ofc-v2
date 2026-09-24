@@ -652,7 +652,7 @@ function vMais(){const m=U.mais;if(m==='jogadores')return vJogadores();if(m==='b
  const outras=Object.keys(G.minhas).length;
  return `<div class="stack" style="margin-top:6px"><h1>Mais</h1></div><div class="sec"><div class="menu">${it('jogadores',I.users,'Jogadores',elenco().length+' no elenco')}${it('batalhas',I.swords,'Batalhas',pend?`<b style="color:var(--y)">${pend} pra responder</b>`:'Desafios, vagas e ranking')}${isAdm()?it('convidar',I.share,'Convidar jogadores',G.pedidosPel.length?`<b style="color:var(--y)">${G.pedidosPel.length} pedido${G.pedidosPel.length>1?'s':''} pra entrar</b>`:'Link de convite, pedidos e membros'):''}${isAdm()?it('ajustes',I.gear,'Ajustes da pelada','Pontuação, times, frases'):''}</div>
  <div class="menu">${it('',I.map,'Todas as peladas',outras>1?'Trocar de pelada, cadastrar outra':'Vitrine, batalhas e vagas','irVitrine')}${it('',I.users,esc(nomeUser()||'Minha conta'),'Sair da conta','conta')}</div>
- <div class="mu small" style="text-align:center;margin-top:10px">Você é <b>${isAdm()?'admin':'jogador'}</b> nesta pelada.${isAdm()?'':' Jogador vê tudo e mexe só no placar.'}</div></div>`}
+ <div class="mu small" style="text-align:center;margin-top:10px">Você é <b>${isAdm()?'admin':'jogador'}</b> nesta pelada.${isAdm()?'':' Jogador vê tudo, mas quem marca placar, gols e assistências são os admins.'}</div>${!isAdm()?(G.pedidos[S.atual]==='admin'?'<div class="card" style="text-align:center"><b>Pedido pra ser admin enviado ✅</b><div class="mu small">Um admin da pelada precisa aceitar.</div></div>':`<button class="btn line block" data-a="pedirEntrada" data-id="${S.atual}" data-p="admin">Pedir pra ser admin</button>`):''}</div>`}
 const backMais=t=>`<button class="back" data-a="irMais" data-v="">${I.back} Mais</button><div class="stack" style="margin-top:8px"><h1>${t}</h1></div>`;
 function vJogadores(){const el=elenco();const per={tipo:'ano',ano:new Date().getFullYear()};const ag=agregado(per);const m={};ag.rows.forEach(r=>m[r.id]=r);
  let h=backMais('Jogadores')+`<div class="sec">`;
@@ -744,7 +744,7 @@ const sb=window.supabase.createClient(SB_URL,SB_KEY);
 const G={pedidos:{},pedidosPel:[],user:null,minhas:{},loading:true,view:'vitrine',membros:[],codigo:null,convite:null,conviteInfo:null,net:true,vit:'peladas',uf:'',cidade:''};
 let LAST={},syncT=null,syncing=false,again=false,chan=null;
 const isMembro=()=>!!(S.atual&&G.minhas[S.atual]);
-const podePlacar=()=>isMembro();
+const podePlacar=()=>isAdm();
 const minhasAdmin=()=>Object.keys(G.minhas).filter(id=>G.minhas[id]==='admin');
 
 const pelFromRow=r=>{const c=r.config||{};return {id:r.id,nome:r.nome,cidade:r.cidade||'',uf:r.uf||'SP',dia:r.dia??1,logo:r.logo||null,porTime:c.porTime||5,duracao:c.duracao||8,pesos:{...PESOS_PADRAO,...(c.pesos||{})},frases:c.frases||JSON.parse(JSON.stringify(FRASES_PADRAO)),avulsoRank:!!c.avulsoRank}};
@@ -804,7 +804,7 @@ function rtRodada(x){const nr=rodFromRow(x);const key='rodadas|'+nr.id;const old
 /* ---- carregar ---- */
 async function carregarVitrine(){const [p,b]=await Promise.all([sb.from('peladas').select('id,nome,cidade,uf,dia,logo,config').order('nome'),sb.from('batalhas').select('*')]);
  if(p.error)throw p.error;S.peladas=(p.data||[]).map(pelFromRow);S.batalhas=(b.data||[]).map(batFromRow)}
-async function carregarMinhas(){G.minhas={};G.pedidos={};if(!G.user)return;const [a,b]=await Promise.all([sb.from('membros').select('pelada_id,papel').eq('user_id',G.user.id),sb.from('solicitacoes').select('pelada_id').eq('user_id',G.user.id)]);(a.data||[]).forEach(m=>G.minhas[m.pelada_id]=m.papel);(b.data||[]).forEach(x=>G.pedidos[x.pelada_id]=1)}
+async function carregarMinhas(){G.minhas={};G.pedidos={};if(!G.user)return;const [a,b]=await Promise.all([sb.from('membros').select('pelada_id,papel').eq('user_id',G.user.id),sb.from('solicitacoes').select('pelada_id,papel').eq('user_id',G.user.id)]);(a.data||[]).forEach(m=>G.minhas[m.pelada_id]=m.papel);(b.data||[]).forEach(x=>G.pedidos[x.pelada_id]=x.papel||'jogador')}
 async function abrirPelada(pid){if(!G.minhas[pid])return;G.loading=true;render();S.atual=pid;try{localStorage.setItem(K+'_pel',pid)}catch(e){}
  const adm=G.minhas[pid]==='admin';
  const [j,n,r,g]=await Promise.all([sb.from('jogadores').select('*').eq('pelada_id',pid),adm?sb.from('notas').select('*').eq('pelada_id',pid):Promise.resolve({data:[]}),sb.from('rodadas').select('*').eq('pelada_id',pid),sb.from('jogos').select('*').eq('pelada_id',pid).order('ordem')]);
@@ -879,7 +879,7 @@ const linkConvite=()=>G.codigo?location.origin+location.pathname+'?convite='+G.c
 function vConvidar(){const l=linkConvite();const eu=G.user&&G.user.id;
  let h=backMais('Convidar')+`<div class="sec"><div class="card stack"><div class="lbl">Link de convite</div><div class="linkbox">${l?esc(l):'Carregando…'}</div>
  <div class="grid2"><button class="btn" data-a="copiaLink">Copiar link</button><a class="btn ghost" href="https://wa.me/?text=${encodeURIComponent('Entra na nossa pelada no Pelada Organizada OFC: '+l)}" target="_blank" rel="noopener">WhatsApp</a></div>
- <div class="mu small">Quem abrir o link cria a conta e já cai direto na <b>${esc(pel().nome)}</b> como jogador. Jogador vê tudo e só mexe no placar.</div>
+ <div class="mu small">Quem abrir o link cria a conta e já cai direto na <b>${esc(pel().nome)}</b> como jogador. Jogador vê tudo, mas não edita nada. Pra ter mais um admin, use <b>Tornar admin</b> nos membros.</div>
  <button class="link" style="text-align:left" data-a="novoLink">Gerar link novo (o antigo para de funcionar)</button></div></div>`;
  h=h.replace('</h1></div>','</h1></div>'+pedidosHTML());
  h+=`<div class="sec"><div class="sec-h"><h2>Membros</h2><span class="mu small">${G.membros.length}</span></div><div class="card" style="padding:2px 14px">${G.membros.map(m=>`<div class="lr"><div class="av sm">${esc(iniciais(m.nome||'?'))}</div><div class="grow"><b>${esc(m.nome||'Sem nome')}</b>${m.user_id===eu?' <span class="mu small">(você)</span>':''}<div><span class="pill ${m.papel==='admin'?'y':'n'}">${m.papel==='admin'?'Admin':'Jogador'}</span></div></div>
@@ -887,7 +887,7 @@ function vConvidar(){const l=linkConvite();const eu=G.user&&G.user.id;
  return h}
 
 function pedidosHTML(){const ps=G.pedidosPel;if(!ps.length)return'';
- return `<div class="sec"><div class="sec-h"><h2>Pedidos pra entrar</h2><span class="pill y">${ps.length}</span></div><div class="card" style="padding:2px 14px">${ps.map(x=>`<div class="lr"><div class="av sm">${esc(iniciais(x.nome||'?'))}</div><div class="grow"><b>${esc(x.nome||'Sem nome')}</b><div class="mu small">pediu em ${new Date(x.criado_em).toLocaleDateString('pt-BR')}</div></div><button class="btn sm" data-a="aceitaPedido" data-u="${x.user_id}">Aceitar</button><button class="btn sm danger" data-a="recusaPedido" data-u="${x.user_id}" aria-label="Recusar">${I.x}</button></div>`).join('')}</div></div>`}
+ return `<div class="sec"><div class="sec-h"><h2>Pedidos pra entrar</h2><span class="pill y">${ps.length}</span></div><div class="card" style="padding:2px 14px">${ps.map(x=>`<div class="lr"><div class="av sm">${esc(iniciais(x.nome||'?'))}</div><div class="grow"><b>${esc(x.nome||'Sem nome')}</b> <span class="pill ${x.papel==='admin'?'y':'n'}">${x.papel==='admin'?'quer ser admin':'jogador'}</span><div class="mu small">pediu em ${new Date(x.criado_em).toLocaleDateString('pt-BR')}</div></div><button class="btn sm" data-a="aceitaPedido" data-u="${x.user_id}">Aceitar</button><button class="btn sm danger" data-a="recusaPedido" data-u="${x.user_id}" aria-label="Recusar">${I.x}</button></div>`).join('')}</div></div>`}
 /* ============ BATALHAS (da pelada atual) ============ */
 const batOk=b=>b.status==='marcada'&&b.okA&&b.okB;
 function vBatalhas(){const ab=U.bat&&S.batalhas.find(x=>x.id===U.bat);if(ab)return vBatalha(ab);const me=S.atual;const adm=isAdm();
@@ -939,7 +939,7 @@ function shVerPel(){const p=P(U.sheet.id);if(!p)return'';const r=rankBatalhas().
  return `<div class="row" style="gap:14px"><div class="mark" style="width:72px;height:72px;border-radius:20px">${logoHTML(p,72)}</div><div class="grow"><h2>${esc(p.nome)}</h2><div class="mu">${esc(p.cidade)}/${p.uf} · toda ${DIAS[p.dia].toLowerCase()}</div></div></div>
  <div class="kpis" style="grid-template-columns:repeat(4,1fr)">${[['Jogos',r.j],['V',r.v||0],['E',r.e||0],['D',r.d||0]].map(([l,v])=>`<div class="kpi" style="align-items:center"><span class="lbl" style="font-size:10.5px">${l}</span><span class="v" style="font-size:24px">${v}</span></div>`).join('')}</div>
  ${ult.length?`<div class="card" style="padding:2px 14px">${ult.map(b=>{const A=P(b.a),B=P(b.b);return `<div class="gm"><div class="t ${b.ga>b.gb?'w':''}"><span>${esc(A.nome)}</span></div><div class="s">${b.ga} × ${b.gb}</div><div class="t r ${b.gb>b.ga?'w':''}"><span>${esc(B.nome)}</span></div></div>`}).join('')}</div>`:''}
- ${G.minhas[p.id]?`<button class="btn block" data-a="trocarPel" data-id="${p.id}">Abrir minha pelada</button>`:`${!G.user?`<button class="btn block" data-a="login" data-m="criar">Criar conta pra pedir entrada</button>`:G.pedidos[p.id]?`<div class="card row"><div class="grow"><b>Pedido enviado ✅</b><div class="mu small">Agora é com o admin. Quando ele aceitar, a pelada aparece em Minhas peladas.</div></div></div><button class="link" data-a="cancelaPedido" data-id="${p.id}">Cancelar pedido</button>`:`<button class="btn block" data-a="pedirEntrada" data-id="${p.id}">Pedir pra entrar como jogador</button>`}${adm.length?`<button class="btn line block" data-a="novoDesafio" data-alvo="${p.id}">Desafiar essa pelada</button>`:''}<div class="mu small">Ranking, jogadores e rodadas ficam visíveis só pra quem é da pelada.</div>`}
+ ${G.minhas[p.id]?`<button class="btn block" data-a="trocarPel" data-id="${p.id}">Abrir minha pelada</button>`:`${!G.user?`<button class="btn block" data-a="login" data-m="criar">Criar conta pra pedir entrada</button>`:G.pedidos[p.id]?`<div class="card row"><div class="grow"><b>Pedido enviado ✅</b><div class="mu small">Você pediu pra entrar como <b>${G.pedidos[p.id]==='admin'?'admin':'jogador'}</b>. Quando um admin aceitar, a pelada aparece em Minhas peladas.</div></div></div><button class="link" data-a="cancelaPedido" data-id="${p.id}">Cancelar pedido</button>`:`<button class="btn block" data-a="pedirEntrada" data-id="${p.id}" data-p="jogador">Pedir pra entrar como jogador</button><button class="btn ghost block" data-a="pedirEntrada" data-id="${p.id}" data-p="admin">Pedir pra entrar como admin</button><div class="mu small">Admin organiza a pelada: sorteio, placar, gols e assistências.</div>`}${adm.length?`<button class="btn line block" data-a="novoDesafio" data-alvo="${p.id}">Desafiar essa pelada</button>`:''}<div class="mu small">Ranking, jogadores e rodadas ficam visíveis só pra quem é da pelada.</div>`}
  <button class="btn ghost block" data-a="fechaSheet">Fechar</button>`}
 function shDesafio(){const me=U.sheet.de||S.atual||minhasAdmin()[0];const alvo=U.sheet.alvo;const vaga=U.sheet.vaga;const adm=minhasAdmin();
  const outras=S.peladas.filter(p=>p.id!==me).sort((a,b)=>(a.uf+a.cidade+a.nome).localeCompare(b.uf+b.cidade+b.nome));
@@ -1121,10 +1121,10 @@ const A={
   if(v<0&&!x[d.k])return;x[d.k]+=v;if(d.k==='g'){const k=b.a===S.atual?'ga':'gb';b[k]=Math.max(0,b[k]+v)}
   b.okA=b.okB=false;save();render();if(v>0&&d.k==='g')toast('GOOOL do '+nomeJ(d.j)+'!')},
  batConf(d){const b=S.batalhas.find(x=>x.id===d.id);const k=b.a===S.atual?'okA':'okB';b[k]=!b[k];save();render();if(b.okA&&b.okB)toast('Batalha confirmada! Entrou no ranking.')},
- async pedirEntrada(d){if(!G.user)return openSheet('auth',{modo:'criar'});const {error}=await sb.from('solicitacoes').insert({pelada_id:d.id,user_id:G.user.id,nome:nomeUser()});
-  if(error&&!/duplicate/i.test(error.message))return toast('Não deu: '+error.message);G.pedidos[d.id]=1;renderSheet();render();toast('Pedido enviado! O admin vai aprovar.')},
+ async pedirEntrada(d){if(!G.user)return openSheet('auth',{modo:'criar'});const papel=d.p==='admin'?'admin':'jogador';const {error}=await sb.from('solicitacoes').insert({pelada_id:d.id,user_id:G.user.id,nome:nomeUser(),papel});
+  if(error&&!/duplicate/i.test(error.message))return toast('Não deu: '+error.message);G.pedidos[d.id]=papel;renderSheet();render();toast(papel==='admin'?'Pedido de admin enviado! Um admin da pelada precisa aprovar.':'Pedido enviado! O admin vai aprovar.')},
  async cancelaPedido(d){await sb.from('solicitacoes').delete().eq('pelada_id',d.id).eq('user_id',G.user.id);delete G.pedidos[d.id];renderSheet();render()},
- async aceitaPedido(d){const {error}=await sb.rpc('aceitar_pedido',{p:S.atual,u:d.u});if(error)return toast('Não deu: '+error.message);toast('Aceito! Agora ele é jogador da pelada.');carregarMembros()},
+ async aceitaPedido(d){const {error}=await sb.rpc('aceitar_pedido',{p:S.atual,u:d.u});if(error)return toast('Não deu: '+error.message);toast('Aceito!');carregarMembros()},
  async recusaPedido(d){const {error}=await sb.from('solicitacoes').delete().eq('pelada_id',S.atual).eq('user_id',d.u);if(error)return toast('Não deu.');toast('Pedido recusado.');carregarMembros()},
  scrim(d,e){if(e.target.classList.contains('scrim'))closeSheet()},
  fechaSheet(){closeSheet()}
