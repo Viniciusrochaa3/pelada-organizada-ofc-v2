@@ -320,11 +320,14 @@ a.btn{text-decoration:none}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (max-width:370px){.score{font-size:68px}.picks{grid-template-columns:1fr}}
 html,body{height:100%;overflow:hidden;overscroll-behavior:none;touch-action:manipulation}
-body{position:fixed;inset:0;width:100%}
+body{position:fixed;inset:0;width:100%;margin:0;padding:0}
 #scroller{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-top:env(safe-area-inset-top,0px)}
-.top{top:0}
+.top{top:0;margin:0;padding:12px 0 14px}
+.tw{margin:0;padding:0}
 input,select,textarea{font-size:16px}
-.app{overflow-x:clip}
+#scroller{display:flex;flex-direction:column;align-items:stretch}
+.app{width:100%;max-width:520px;margin:0 auto;min-width:0;overflow-x:clip;flex:none}
+.app>*{max-width:100%}
 </style>
 
 </head><body>
@@ -1163,6 +1166,11 @@ document.addEventListener('submit',async e=>{const f=e.target;if(!f.dataset||!f.
   else{const {error}=await sb.auth.signInWithPassword({email,password:senha});if(error)return toast('E-mail ou senha errados.');closeSheet()}}
  else if(f.dataset.f2==='novaSenha'){const {error}=await sb.auth.updateUser({password:$('#nSenha').value});if(error)return toast(msgErro(error));closeSheet();toast('Senha nova salva.')}}
  finally{if(bt)bt.disabled=false}});
+/* ---- trava a tela no lugar (sem deslizar pro lado) ---- */
+const travaX=()=>{if(SCRL.scrollLeft)SCRL.scrollLeft=0;if(scrollX||scrollY)window.scrollTo(0,0);document.body.scrollLeft=0;document.documentElement.scrollLeft=0};
+SCRL.addEventListener('scroll',()=>{if(SCRL.scrollLeft)SCRL.scrollLeft=0},{passive:true});
+addEventListener('resize',travaX);addEventListener('orientationchange',()=>setTimeout(travaX,300));document.addEventListener('focusout',()=>setTimeout(travaX,50));
+if(window.visualViewport)visualViewport.addEventListener('resize',()=>setTimeout(travaX,50));
 /* ============ START ============ */
 boot();
 </script>
