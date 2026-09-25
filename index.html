@@ -637,6 +637,7 @@ function vSumula(r){const p=pel();const s=sumula(r);const c=campeaoDe(r);
  let h=`<div class="card stack"><div class="row"><div class="grow"><div class="lbl">Campeão ${r.fechada?'do dia':'provisório'}</div><h2 style="margin-top:4px">${c?esc(c.nome):'Ninguém venceu ainda'}</h2></div>${c?`<span class="sw" style="width:28px;height:28px;border-radius:9px;background:${c.cor}"></span>`:''}</div><div class="mu small">Campeão = time com mais vitórias. Empate: saldo de gols, depois gols marcados.</div></div>`;
  h+=`<div class="sec-h"><h2>Súmula</h2>${isAdm()?'<span class="mu small">Toque num jogador pra corrigir</span>':''}</div>`;
  h+=rows.length?`<div class="tw"><table><thead><tr><th class="l">Jogador</th><th>P</th><th>G</th><th>A</th><th>E</th><th>V</th><th>F</th><th>Pts</th></tr></thead><tbody>${rows.map(x=>`<tr class="${isAdm()?'tap':''}" ${isAdm()?`data-a="editSum" data-id="${x.id}"`:''}><td class="l name">${esc(nomeJ(x.id))}${avTag(x.id)}${r.manual&&r.manual[x.id]?' <span class="pill y" style="padding:1px 5px">ed</span>':''}</td><td>${x.p}</td><td>${x.g}</td><td>${x.a}</td><td>${x.e}</td><td>${x.v}</td><td>${x.f}</td><td class="pts">${fmt(x.pts)}</td></tr>`).join('')}</tbody></table></div>`:empty('Marque quem veio no Sorteio.');
+ if(isAdm())h+=`<div class="card stack" style="margin-top:6px"><div class="row"><div class="grow"><div class="lbl">Foto do time campeão</div><div class="mu small">${r.foto?'✅ Foto salva. Vai no topo do resumo pro grupo.':'Tira agora ou depois de fechar, na página da rodada.'}</div></div>${r.foto?`<img src="${r.foto}" alt="" style="width:56px;height:56px;border-radius:12px;object-fit:cover">`:''}</div><div class="grid2"><label class="btn sm ${r.foto?'ghost':''}">📷 ${r.foto?'Outra':'Tirar foto'}<input type="file" accept="image/*" capture="environment" data-up="fotoRodada" data-id="${r.id}" hidden></label><label class="btn sm ghost">🖼️ Galeria<input type="file" accept="image/*" data-up="fotoRodada" data-id="${r.id}" hidden></label></div></div>`;
  if(isAdm())h+=`<div class="stack" style="margin-top:6px"><button class="btn block" data-a="fecharDia" ${!rows.length?'disabled':''}>Fechar o dia</button><div class="mu small" style="text-align:center">Fechar calcula o campeão (foto = ${fmt(p.pesos.f)} pts), os pontos, solta os comentários e atualiza os rankings.</div><button class="btn block danger" data-a="apagarRodada" data-id="${r.id}">Apagar rodada</button></div>`;
  return h}
 
@@ -655,8 +656,9 @@ function vRodada(r){const p=pel();const s=sumula(r);const c=campeaoDe(r);const p
  const rows=Object.keys(s).filter(id=>s[id].p).map(id=>({id,...s[id],pts:pontos(s[id],pw)})).sort((a,b)=>b.pts-a.pts||b.v-a.v||b.g-a.g);
  let h=`<button class="back" data-a="fecharRodada">${I.back} Rodadas</button><div class="stack" style="margin-top:8px"><div class="row"><div class="lbl grow">${diaSem(r.data)} · ${dmy(r.data)}</div>${isAdm()?`<label class="datachg">Trocar dia<input type="date" data-f="rodData" data-id="${r.id}" value="${r.data}"></label>`:''}</div><h1>${r.fechada?'Rodada':'Rodada ao vivo'}</h1></div>`;
  h+=`<div class="sec"><div class="photo">${r.foto?`<img src="${r.foto}" alt="Time campeão">`:`<div class="stack" style="align-items:center;color:var(--mu)">${I.cam}<span class="small">${isAdm()?'Suba a foto do time campeão':'Sem foto ainda'}</span></div>`}${c?`<span class="tag">Campeão · ${esc(c.nome)}</span>`:''}</div>
- ${isAdm()?`<label class="btn ghost block">${r.foto?'Trocar foto':'Subir foto do campeão'}<input type="file" accept="image/*" data-up="fotoRodada" data-id="${r.id}" hidden></label>`:''}
+ ${isAdm()?`<div class="grid2"><label class="btn ${r.foto?'ghost':''}">📷 ${r.foto?'Outra':'Tirar foto'}<input type="file" accept="image/*" capture="environment" data-up="fotoRodada" data-id="${r.id}" hidden></label><label class="btn ghost">🖼️ Galeria<input type="file" accept="image/*" data-up="fotoRodada" data-id="${r.id}" hidden></label></div>`:''}
  ${c?`<div class="row wrap" style="gap:6px">${c.jogadores.map(id=>`<span class="chip">${esc(nomeJ(id))}</span>`).join('')}</div>`:''}</div>`;
+ if(r.fechada)h+=`<section class="sec"><div class="card stack" style="border-color:var(--y)"><div class="lbl">Mandar o resumo no grupo</div><div class="mu small">${r.foto?'✅ Foto do campeão, resenha, súmula e ranking do mês numa imagem só.':'📷 Suba a foto do campeão ali em cima antes de mandar: ela vai no topo da imagem.'}</div><div class="share" style="margin:0"><button class="btn sm" data-a="rsShare" data-id="${r.id}">${I.share} Mandar no WhatsApp</button><button class="btn sm ghost" data-a="rsBaixar" data-id="${r.id}">${I.down} Baixar imagem</button><button class="btn sm ghost" data-a="rsCopiar" data-id="${r.id}">Copiar texto</button></div></div></section>`;
  if(rows.length>=3)h+=`<section class="sec"><h2>Top 3 do dia</h2>${podio(rows)}</section>`;
  const com=Object.entries(r.coment||{}).filter(([id])=>J(id));
  if(r.fechada&&com.length){const ord=id=>{const i=rows.findIndex(x=>x.id===id);return i<0?999:i};
@@ -807,6 +809,76 @@ async function tmCanvas(){try{await document.fonts.ready}catch(e){}
  return c}
 const tmNomeArq=()=>`times-${aberta().data}.png`;
 function tmBlob(){return tmCanvas().then(c=>new Promise(r=>c.toBlob(r,'image/png')))}
+
+/* ============ RESUMO DA RODADA (imagem pro grupo) ============ */
+function rsDados(r){const p=P(r.peladaId);const s=sumula(r);const c=campeaoDe(r);
+ const rows=Object.keys(s).filter(id=>s[id].p&&J(id)).map(id=>({id,...s[id],pts:pontos(s[id],p.pesos)})).sort((a,b)=>b.pts-a.pts||b.v-a.v||b.g-a.g);
+ const ord=id=>{const i=rows.findIndex(x=>x.id===id);return i<0?999:i};
+ const todas=Object.entries(r.coment||{}).filter(([id])=>J(id)).sort((a,b)=>ord(a[0])-ord(b[0])).map(([,o])=>o);
+ const pri=['campeao','artilheiro','garcom','ruim','zero','bom','medio','faltou'];const com=[];const usa=new Set();
+ pri.forEach(cat=>{const o=todas.find(o=>o.cat===cat&&!usa.has(o));if(o&&com.length<6){com.push(o);usa.add(o)}});
+ todas.forEach(o=>{if(com.length<6&&!usa.has(o)){com.push(o);usa.add(o)}});
+ const [y,m]=r.data.split('-').map(Number);const per={tipo:'mes',ano:y,mes:m};const rk=agregado(per,r.peladaId).rows.sort(ordMVP).slice(0,5);
+ const ci=c?r.times.findIndex(t=>t.id===c.id):-1;
+ return {p,c,cNome:c?(/^time \d+$/i.test(c.nome)?c.nome:c.nome):'',ci,rows,com,rk,per}}
+function rsTexto(r){const {p,c,rows,com,rk,per}=rsDados(r);
+ let t=`*🏆 RESUMO DA RODADA*\n*${p.nome}*\n_${diaSem(r.data)}, ${dmy(r.data)}_\n`;
+ if(c)t+=`\n*CAMPEÃO: ${c.nome.toUpperCase()}* 🎉\nParabéns ${c.jogadores.map(nomeJ).join(', ')}!\n`;
+ if(com.length)t+=`\n*😂 RESENHA*\n`+com.map(o=>`• ${o.t}`).join('\n')+'\n';
+ t+=`\n*📋 SÚMULA DO DIA*\n`+rows.map((x,i)=>`${i+1}. ${nomeJ(x.id)} — *${fmt(x.pts)} pts* (${x.g}G ${x.a}A ${x.v}V)`).join('\n')+'\n';
+ if(rk.length)t+=`\n*🏅 RANKING DE ${MESES[per.mes-1].toUpperCase()}*\n`+rk.map((x,i)=>`${['🥇','🥈','🥉'][i]||(i+1)+'º'} ${nomeJ(x.id)} — ${fmt(x.pts)} pts`).join('\n')+'\n';
+ return t+`\n_Pelada Organizada OFC_`}
+async function rsCanvas(r){try{await document.fonts.ready}catch(e){}
+ const {p,c,rows,com,rk,per}=rsDados(r);const W=1080,P=56;
+ const D="'Big Shoulders Display',Impact,'Arial Narrow',sans-serif",B="'Barlow',system-ui,sans-serif",N="'Barlow Condensed','Arial Narrow',sans-serif";
+ const m=document.createElement('canvas').getContext('2d');
+ const wrap=(t,font,max)=>{m.font=font;const ws=String(t).split(' ');const ls=[];let l='';ws.forEach(w=>{const tt=l?l+' '+w:w;if(m.measureText(tt).width>max&&l){ls.push(l);l=w}else l=tt});if(l)ls.push(l);return ls};
+ const foto=await tmCarregaImg(r.foto);
+ let logo=await tmCarregaImg(p.logo);if(!logo&&typeof LOGO_SVG!=='undefined')logo=await tmCarregaImg('data:image/svg+xml;charset=utf-8,'+encodeURIComponent(LOGO_SVG.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"').replace('width="100%" height="100%"','width="200" height="220"')));
+ const FH=foto?Math.min(760,Math.round((W-2*P)*foto.height/foto.width)):0;
+ const parab=c?wrap('Parabéns '+c.jogadores.map(nomeJ).join(', ')+'!',`600 30px ${B}`,W-2*P-60):[];
+ const comL=com.map(o=>({cat:(CAT_LBL[o.cat]||'').toUpperCase(),ls:wrap('“'+o.t+'”',`500 30px ${B}`,W-2*P-60)}));
+ const HEAD=210,CAMP=c?(foto?FH+40:0)+130+parab.length*40+30:0;
+ const RES=com.length?90+comL.reduce((s,o)=>s+34+o.ls.length*40+22,0)+10:0;
+ const RH=58,SUM=110+rows.length*RH+20;const RK=rk.length?110+rk.length*RH+20:0;
+ const H=HEAD+CAMP+RES+SUM+RK+150;
+ const cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
+ const rr=(X,Y,w,h,rad)=>{x.beginPath();x.moveTo(X+rad,Y);x.arcTo(X+w,Y,X+w,Y+h,rad);x.arcTo(X+w,Y+h,X,Y+h,rad);x.arcTo(X,Y+h,X,Y,rad);x.arcTo(X,Y,X+w,Y,rad);x.closePath()};
+ const corta=(t,max)=>{while(x.measureText(t).width>max&&t.length>3)t=t.slice(0,-2)+'…';return t};
+ x.fillStyle='#0B0B0A';x.fillRect(0,0,W,H);
+ // topo
+ const L=120;x.fillStyle='#0B0B0A';rr(P,P,L,L,26);x.fill();x.strokeStyle='#2A2A27';x.lineWidth=2;rr(P,P,L,L,26);x.stroke();
+ if(logo){x.save();rr(P,P,L,L,26);x.clip();const k=p.logo?Math.max(L/logo.width,L/logo.height):Math.min((L-20)/logo.width,(L-20)/logo.height);x.drawImage(logo,P+(L-logo.width*k)/2,P+(L-logo.height*k)/2,logo.width*k,logo.height*k);x.restore()}
+ const tx=P+L+28;x.fillStyle='#FFD400';x.font=`700 26px ${N}`;x.fillText('RESUMO DA RODADA  ·  '+diaSem(r.data).toUpperCase()+', '+dmy(r.data),tx,P+34);
+ x.fillStyle='#F6F5EF';x.font=`900 64px ${D}`;x.fillText(corta(p.nome.toUpperCase(),W-P-tx),tx,P+100);
+ let y=HEAD;
+ // campeão
+ if(c){if(foto){x.save();rr(P,y,W-2*P,FH,30);x.clip();const k=Math.max((W-2*P)/foto.width,FH/foto.height);x.drawImage(foto,P+(W-2*P-foto.width*k)/2,y+(FH-foto.height*k)/2,foto.width*k,foto.height*k);
+   const g=x.createLinearGradient(0,y+FH*0.55,0,y+FH);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.75)');x.fillStyle=g;x.fillRect(P,y,W-2*P,FH);x.restore();
+   x.fillStyle='#FFD400';rr(P+26,y+FH-86,330,60,30);x.fill();x.fillStyle='#0B0B0A';x.font=`800 30px ${N}`;x.fillText('🏆 TIME CAMPEÃO',P+50,y+FH-45);y+=FH+40}
+  x.fillStyle='#FFD400';rr(P,y,W-2*P,130+parab.length*40,30);x.fill();
+  x.fillStyle='rgba(11,11,10,.6)';x.font=`700 24px ${N}`;x.fillText('CAMPEÃO DA RODADA 🎉',P+30,y+42);
+  x.fillStyle='#0B0B0A';x.font=`900 56px ${D}`;x.fillText(corta(c.nome.toUpperCase(),W-2*P-60),P+30,y+100);
+  x.font=`600 30px ${B}`;parab.forEach((l,i)=>x.fillText(l,P+30,y+148+i*40));y+=130+parab.length*40+30}
+ // resenha
+ if(com.length){x.fillStyle='#F6F5EF';x.font=`900 44px ${D}`;x.fillText('😂 RESENHA',P,y+50);y+=80;
+  comL.forEach(o=>{const h=34+o.ls.length*40+8;x.fillStyle='#161614';rr(P,y,W-2*P,h,22);x.fill();x.fillStyle='#FFD400';x.fillRect(P,y+14,5,h-28);
+   x.font=`700 22px ${N}`;x.fillText(o.cat,P+30,y+32);x.fillStyle='#E9E7DF';x.font=`500 30px ${B}`;o.ls.forEach((l,i)=>x.fillText(l,P+30,y+72+i*40));y+=h+14});y+=10}
+ // tabela genérica
+ const tabela=(tit,lst,cols)=>{x.fillStyle='#F6F5EF';x.font=`900 44px ${D}`;x.fillText(tit,P,y+50);y+=80;
+  x.font=`700 22px ${N}`;x.fillStyle='#A09E92';x.textAlign='right';let cx=W-P-20;const pos=[];for(let i=cols.length-1;i>=0;i--){pos[i]=cx;cx-=cols[i][2]}cols.forEach((cl,i)=>x.fillText(cl[0],pos[i],y+6));x.textAlign='left';y+=20;
+  const med=['#FFD400','#D6D5CE','#C98A4B'];
+  lst.forEach((rw,i)=>{if(i%2===0){x.fillStyle='#161614';rr(P,y,W-2*P,RH-6,16);x.fill()}const cy=y+(RH-6)/2+10;
+   if(i<3){x.fillStyle=med[i];x.beginPath();x.arc(P+36,cy-10,20,0,Math.PI*2);x.fill();x.fillStyle='#0B0B0A'}else x.fillStyle='#A09E92';
+   x.font=`900 26px ${D}`;x.textAlign='center';x.fillText(i+1,P+36,cy-1);x.textAlign='left';
+   x.fillStyle='#F6F5EF';x.font=`${i<3?700:600} 30px ${B}`;x.fillText(corta(nomeJ(rw.id),cx-(P+76)-10),P+76,cy);
+   x.textAlign='right';cols.forEach((cl,j)=>{const last=j===cols.length-1;x.fillStyle=last?'#FFD400':'#F6F5EF';x.font=`${last?700:600} ${last?32:28}px ${N}`;x.fillText(cl[1](rw),pos[j],cy)});x.textAlign='left';y+=RH});y+=30};
+ tabela('📋 SÚMULA DO DIA',rows,[['G',r=>r.g,64],['A',r=>r.a,64],['V',r=>r.v,64],['PTS',r=>fmt(r.pts),110]]);
+ if(rk.length)tabela('🏅 RANKING DE '+MESES[per.mes-1].toUpperCase(),rk,[['JOGOS',r=>r.p,100],['PTS',r=>fmt(r.pts),110]]);
+ x.fillStyle='#2F2E29';x.fillRect(P,y,W-2*P,2);x.fillStyle='#FFD400';x.font=`800 32px ${D}`;x.fillText('PELADA ORGANIZADA OFC',P,y+60);
+ x.fillStyle='#A09E92';x.font=`600 24px ${B}`;x.textAlign='right';x.fillText('Até a próxima! ⚽',W-P,y+58);x.textAlign='left';
+ return cv}
+const rsNomeArq=r=>`rodada-${r.data}.png`;
 
 /* ============ MONTAR TIMES NA MÃO (arrastar) ============ */
 function montarTimes(){const r=aberta();const nt=Math.max(2,Math.min(8,U.nt||2));r.times=Array.from({length:nt},(_,i)=>({id:uid(),nome:'Time '+(i+1),cor:CORES[i%CORES.length].c,jogadores:[]}));U.sel=null;save();render();toast('Agora arraste cada nome pro time dele.')}
@@ -1150,6 +1222,11 @@ const A={
   baixarBlob(b,tmNomeArq());toast('Imagem baixada. É só mandar no grupo!')},
  async tmBaixar(){const b=await tmBlob();baixarBlob(b,tmNomeArq());toast('Imagem dos times baixada.')},
  async tmCopiar(){const t=tmTexto();try{await navigator.clipboard.writeText(t);toast('Texto copiado! Cola no grupo do WhatsApp.')}catch(e){openSheet('txt',{t})}},
+ async rsShare(d){const r=R(d.id);if(!r.foto&&isAdm()&&!U.semFotoOk){U.semFotoOk=1;return toast('Sem foto do campeão ainda. Toque de novo pra mandar assim mesmo.')}toast('Gerando imagem…');const cv=await rsCanvas(r);const b=await new Promise(q=>cv.toBlob(q,'image/png'));const f=new File([b],rsNomeArq(r),{type:'image/png'});
+  try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],text:rsTexto(r)});return}}catch(e){if(e&&e.name==='AbortError')return}
+  baixarBlob(b,rsNomeArq(r));toast('Imagem baixada. É só mandar no grupo!')},
+ async rsBaixar(d){const r=R(d.id);const cv=await rsCanvas(r);const b=await new Promise(q=>cv.toBlob(q,'image/png'));baixarBlob(b,rsNomeArq(r));toast('Resumo da rodada baixado.')},
+ async rsCopiar(d){const t=rsTexto(R(d.id));try{await navigator.clipboard.writeText(t);toast('Texto copiado! Cola no grupo do WhatsApp.')}catch(e){openSheet('txt',{t})}},
  async rkShare(){toast('Gerando imagem…');const b=await rkBlob();const f=new File([b],rkNomeArq(),{type:'image/png'});
   try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],text:rkTexto()});return}}catch(e){if(e&&e.name==='AbortError')return}
   baixarBlob(b,rkNomeArq());toast('Imagem baixada. É só mandar no grupo!')},
