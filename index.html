@@ -448,19 +448,24 @@ function periodoPadrao(){const d=new Date();const per={tipo:'mes',ano:d.getFullY
 function perLabel(per){return per.tipo==='ano'?'Ano '+per.ano:MESES[per.mes-1]+' '+per.ano}
 
 /* ============ SORTEIO BALANCEADO ============ */
-function sortear(ids,nt){
- const ps=shuffle(ids.map(id=>({id,n:(J(id)||{}).nota||3}))).sort((a,b)=>b.n-a.n);
- const T=Array.from({length:nt},()=>[]);let k=0,dir=1;
- ps.forEach(p=>{T[k].push(p);if(dir===1){if(k===nt-1)dir=-1;else k++}else{if(k===0)dir=1;else k--}});
- const maxL=Math.max(...T.map(t=>t.length));
- const forca=t=>t.length?t.reduce((s,p)=>s+p.n,0)/t.length*maxL:0;
- const obj=()=>{const f=T.map(forca);return Math.max(...f)-Math.min(...f)};
- for(let it=0;it<300;it++){let best=obj(),mv=null;
-  for(let i=0;i<nt;i++)for(let j=i+1;j<nt;j++)for(let a=0;a<T[i].length;a++)for(let b=0;b<T[j].length;b++){
-   if(T[i][a].n===T[j][b].n)continue;[T[i][a],T[j][b]]=[T[j][b],T[i][a]];const o=obj();[T[i][a],T[j][b]]=[T[j][b],T[i][a]];
-   if(o<best-1e-9){best=o;mv=[i,a,j,b]}}
-  if(!mv)break;const[i,a,j,b]=mv;[T[i][a],T[j][b]]=[T[j][b],T[i][a]]}
- return T.map((t,i)=>({id:uid(),nome:'Time '+(i+1),cor:CORES[i%CORES.length].c,jogadores:shuffle(t.map(p=>p.id))}))}
+function sortear(ids,nt,prev){
+ const n=id=>(J(id)||{}).nota||3;
+ const sig=T=>T.map(t=>[...t].sort().join(',')).sort().join('|');
+ const prevSig=prev&&prev.length?sig(prev.map(t=>t.jogadores.filter(x=>ids.includes(x)))):null;
+ const size=Array.from({length:nt},(_,i)=>Math.floor(ids.length/nt)+(i<ids.length%nt?1:0));
+ const dif=T=>{const f=T.map(t=>t.reduce((s,id)=>s+n(id),0)/Math.max(1,t.length));return Math.max(...f)-Math.min(...f)};
+ const cands=[];
+ for(let tr=0;tr<500;tr++){
+  const ord=ids.map(id=>({id,k:n(id)+(Math.random()-.5)*1.5})).sort((a,b)=>b.k-a.k);
+  const T=Array.from({length:nt},()=>[]);const sum=Array(nt).fill(0);
+  ord.forEach(p=>{let b=-1;for(let i=0;i<nt;i++){if(T[i].length>=size[i])continue;const m=sum[i]/Math.max(1,T[i].length);if(b<0||m<sum[b]/Math.max(1,T[b].length)||(m===sum[b]/Math.max(1,T[b].length)&&Math.random()<.5))b=i}T[b].push(p.id);sum[b]+=n(p.id)});
+  let cur=dif(T);
+  for(let it=0;it<80;it++){const i=Math.random()*nt|0,j=Math.random()*nt|0;if(i===j||!T[i].length||!T[j].length)continue;const a=Math.random()*T[i].length|0,b=Math.random()*T[j].length|0;[T[i][a],T[j][b]]=[T[j][b],T[i][a]];const o=dif(T);if(o<=cur)cur=o;else [T[i][a],T[j][b]]=[T[j][b],T[i][a]]}
+  cands.push({T,d:cur,s:sig(T)})}
+ cands.sort((a,b)=>a.d-b.d);const best=cands[0].d;
+ const bons=[...new Map(cands.filter(c=>c.d<=best+0.2&&c.s!==prevSig).map(c=>[c.s,c])).values()];
+ const pick=bons.length?bons[Math.random()*bons.length|0]:(cands.find(c=>c.s!==prevSig)||cands[0]);
+ return pick.T.map((t,i)=>({id:uid(),nome:'Time '+(i+1),cor:CORES[i%CORES.length].c,jogadores:shuffle(t)}))}
 const somaNota=t=>t.jogadores.reduce((s,id)=>s+((J(id)||{}).nota||0),0);
 
 /* ============ COMENTÁRIOS ============ */
@@ -1087,7 +1092,7 @@ const A={
  presTodos(){const r=aberta();r.presentes=[...new Set(r.presentes.concat(elenco().filter(j=>!j.avulso&&!j.goleiro).map(j=>j.id)))];U.nt=null;save();render()},
  presNenhum(){const r=aberta();r.presentes=[];U.nt=null;save();render()},
  nt(d){U.nt=Math.max(2,Math.min(8,(U.nt||2)+Number(d.v)));render()},
- sortear(){const r=aberta();const lin=r.presentes.filter(id=>!ehGol(id));const nt=Math.min(U.nt||2,lin.length);r.times=sortear(lin,nt);U.sel=null;save();render();toast('Times sorteados e equilibrados.')},
+ sortear(){const r=aberta();const lin=r.presentes.filter(id=>!ehGol(id));const nt=Math.min(U.nt||2,lin.length);r.times=sortear(lin,nt,r.times);U.sel=null;save();render();toast('Times sorteados e equilibrados.')},
  selJ(d,e){e.stopPropagation();U.sel=U.sel===d.id?null:d.id;render()},
  mover(d){if(!U.sel)return;moverPara(U.sel,d.t)},
  montar(){const r=aberta();if(r.times.some(t=>t.jogadores.length))return openSheet('conf',{titulo:'Montar do zero?',texto:'Os times atuais são desfeitos e todo mundo volta pro "Sem time".',ok:'Montar do zero',acao:'montar'});montarTimes()},
