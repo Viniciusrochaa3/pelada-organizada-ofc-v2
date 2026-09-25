@@ -321,6 +321,7 @@ a.btn{text-decoration:none}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (max-width:370px){.score{font-size:68px}.picks{grid-template-columns:1fr}}
 .datachg{position:relative;display:inline-flex;align-items:center;gap:6px;font:600 13px Barlow,sans-serif;color:var(--y);border:1px solid var(--y);border-radius:999px;padding:5px 12px;overflow:hidden;cursor:pointer}.datachg input{position:absolute;inset:0;opacity:0;width:100%;height:100%;font-size:16px}
+.tp.swap-on{background:var(--y)!important;color:var(--yk)!important;border-color:var(--y)!important;transform:scale(1.08);box-shadow:0 0 0 4px rgba(255,212,0,.35)}.tp.swap-on .nota{background:var(--yk);color:var(--y)}
 html,body{height:100%;overflow:hidden;overscroll-behavior:none;touch-action:manipulation}
 body{position:fixed;inset:0;width:100%;margin:0;padding:0}
 #scroller{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-top:env(safe-area-inset-top,0px)}
@@ -581,7 +582,7 @@ function vSorteio(r){const p=pel();const el=elenco();const n=r.presentes.filter(
  <div class="grid2"><button class="btn" data-a="sortear" ${n<2?'disabled':''}>${I.shuffle} ${r.times.length?'Sortear de novo':'Sortear'}</button><button class="btn line" data-a="montar" ${n<2?'disabled':''}>✋ Montar na mão</button></div>
  <div class="mu small">Sortear equilibra pelas notas. Montar na mão: você arrasta cada nome pro time que quiser.</div></div>`;
  if(r.times.length){const jogou=r.jogos.length>0;
-  h+=`<div class="sec-h" style="margin-top:8px"><h2>Times</h2><button class="btn sm ghost" data-a="addTime">+ Time</button></div><div class="mu small">✋ <b>Arraste o nome</b> com o dedo até o time. Também dá pra tocar no nome e depois no time.</div>`;
+  h+=`<div class="sec-h" style="margin-top:8px"><h2>Times</h2><button class="btn sm ghost" data-a="addTime">+ Time</button></div><div class="mu small">✋ <b>Arraste o nome</b> pra outro time (no PC, com o mouse). Soltou <b>em cima de um jogador</b>? Os dois trocam de time. Também dá pra tocar num nome e depois no outro.</div>`;
   const semTime=r.presentes.filter(id=>J(id)&&!ehGol(id)&&!r.times.some(t=>t.jogadores.includes(id)));const gkPres=r.presentes.filter(ehGol);
   h+=`<div class="team pool" data-drop="pool" ${U.sel?`data-a="mover" data-t="pool"`:''}><div class="team-h"><b class="grow" style="font-family:var(--disp);font-size:18px;text-transform:uppercase">Sem time</b><span class="pill ${semTime.length?'y':'n'}">${semTime.length}</span></div><div class="team-p">${semTime.map(id=>`<button class="tp ${U.sel===id?'sel':''}" data-a="selJ" data-id="${id}" data-drag="${id}">${esc(nomeJ(id))} <span class="nota">${fmtNota((J(id)||{}).nota)}</span></button>`).join('')||'<span class="mu small">Todo mundo já tem time ✅</span>'}</div></div>`;
   if(jogou)h+=`<div class="mu small">Já tem jogo registrado: mudanças valem pros próximos jogos.</div>`;
@@ -811,14 +812,17 @@ function tmBlob(){return tmCanvas().then(c=>new Promise(r=>c.toBlob(r,'image/png
 function montarTimes(){const r=aberta();const nt=Math.max(2,Math.min(8,U.nt||2));r.times=Array.from({length:nt},(_,i)=>({id:uid(),nome:'Time '+(i+1),cor:CORES[i%CORES.length].c,jogadores:[]}));U.sel=null;save();render();toast('Agora arraste cada nome pro time dele.')}
 function moverPara(id,dest){const r=aberta();if(!r)return;r.times.forEach(t=>t.jogadores=t.jogadores.filter(x=>x!==id));if(dest!=='pool'){const t=r.times.find(t=>t.id===dest);if(t)t.jogadores.push(id)}U.sel=null;save();render()}
 let DR=null,noClick=0;
-function fimArraste(){document.querySelectorAll('.drop-on').forEach(x=>x.classList.remove('drop-on'));document.documentElement.classList.remove('arrastando');if(DR&&DR.g)DR.g.remove();DR=null}
+function onde(r,id){const t=r.times.find(t=>t.jogadores.includes(id));return t?t.id:'pool'}
+function trocar(a,b){const r=aberta();if(!r||a===b)return;const ta=onde(r,a),tb=onde(r,b);if(ta===tb){U.sel=null;render();return}
+ r.times.forEach(t=>{t.jogadores=t.jogadores.map(x=>x===a?b:x===b?a:x)});U.sel=null;save();render();toast('Trocou: '+nomeJ(a)+' ⇄ '+nomeJ(b))}
+function fimArraste(){document.querySelectorAll('.swap-on').forEach(x=>x.classList.remove('swap-on'));document.querySelectorAll('.drop-on').forEach(x=>x.classList.remove('drop-on'));document.documentElement.classList.remove('arrastando');if(DR&&DR.g)DR.g.remove();DR=null}
 document.addEventListener('pointerdown',e=>{const c=e.target.closest('[data-drag]');if(!c||!isAdm()||(e.pointerType==='mouse'&&e.button!==0))return;DR={id:c.dataset.drag,x:e.clientX,y:e.clientY,el:c,on:false}});
 document.addEventListener('pointermove',e=>{if(!DR)return;
  if(!DR.on){if(Math.hypot(e.clientX-DR.x,e.clientY-DR.y)<7)return;DR.on=true;const g=DR.el.cloneNode(true);g.className='tp ghost-drag';g.removeAttribute('data-a');g.removeAttribute('data-drag');document.body.appendChild(g);DR.g=g;document.documentElement.classList.add('arrastando');
   (function loop(){if(!DR||!DR.on)return;const y=DR.cy||0;if(y<90)SCRL.scrollBy(0,-14);else if(y>innerHeight-150)SCRL.scrollBy(0,14);requestAnimationFrame(loop)})()}
  e.preventDefault();DR.cy=e.clientY;DR.g.style.left=e.clientX+'px';DR.g.style.top=e.clientY+'px';
- const z=(document.elementFromPoint(e.clientX,e.clientY)||{closest(){return null}}).closest('[data-drop]');document.querySelectorAll('.drop-on').forEach(x=>{if(x!==z)x.classList.remove('drop-on')});if(z)z.classList.add('drop-on')},{passive:false});
-document.addEventListener('pointerup',e=>{if(!DR)return;if(!DR.on){DR=null;return}const id=DR.id;const z=(document.elementFromPoint(e.clientX,e.clientY)||{closest(){return null}}).closest('[data-drop]');noClick=Date.now();fimArraste();if(z)moverPara(id,z.dataset.drop)});
+ const hit=document.elementFromPoint(e.clientX,e.clientY)||{closest(){return null}};const z=hit.closest('[data-drop]');let pj=hit.closest('[data-drag]');if(pj&&pj.dataset.drag===DR.id)pj=null;document.querySelectorAll('.swap-on').forEach(x=>{if(x!==pj)x.classList.remove('swap-on')});if(pj)pj.classList.add('swap-on');document.querySelectorAll('.drop-on').forEach(x=>{if(x!==z)x.classList.remove('drop-on')});if(z)z.classList.add('drop-on')},{passive:false});
+document.addEventListener('pointerup',e=>{if(!DR)return;if(!DR.on){DR=null;return}const id=DR.id;const hit=document.elementFromPoint(e.clientX,e.clientY)||{closest(){return null}};const z=hit.closest('[data-drop]');const pj=hit.closest('[data-drag]');noClick=Date.now();fimArraste();if(pj&&pj.dataset.drag!==id)trocar(id,pj.dataset.drag);else if(z)moverPara(id,z.dataset.drop)});
 document.addEventListener('pointercancel',()=>{if(DR)fimArraste()});
 
 /* ============ BANCO (SUPABASE) ============ */
@@ -1093,7 +1097,7 @@ const A={
  presNenhum(){const r=aberta();r.presentes=[];U.nt=null;save();render()},
  nt(d){U.nt=Math.max(2,Math.min(8,(U.nt||2)+Number(d.v)));render()},
  sortear(){const r=aberta();const lin=r.presentes.filter(id=>!ehGol(id));const nt=Math.min(U.nt||2,lin.length);r.times=sortear(lin,nt,r.times);U.sel=null;save();render();toast('Times sorteados e equilibrados.')},
- selJ(d,e){e.stopPropagation();U.sel=U.sel===d.id?null:d.id;render()},
+ selJ(d,e){e.stopPropagation();if(U.sel&&U.sel!==d.id){const r=aberta();if(r&&onde(r,U.sel)!==onde(r,d.id))return trocar(U.sel,d.id)}U.sel=U.sel===d.id?null:d.id;render()},
  mover(d){if(!U.sel)return;moverPara(U.sel,d.t)},
  montar(){const r=aberta();if(r.times.some(t=>t.jogadores.length))return openSheet('conf',{titulo:'Montar do zero?',texto:'Os times atuais são desfeitos e todo mundo volta pro "Sem time".',ok:'Montar do zero',acao:'montar'});montarTimes()},
  addTime(){const r=aberta();const i=r.times.length;if(i>=8)return toast('Máximo de 8 times.');r.times.push({id:uid(),nome:'Time '+(i+1),cor:CORES[i%CORES.length].c,jogadores:[]});save();render()},
