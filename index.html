@@ -322,6 +322,8 @@ a.btn{text-decoration:none}
 @media (max-width:370px){.score{font-size:68px}.picks{grid-template-columns:1fr}}
 .datachg{position:relative;display:inline-flex;align-items:center;gap:6px;font:600 13px Barlow,sans-serif;color:var(--y);border:1px solid var(--y);border-radius:999px;padding:5px 12px;overflow:hidden;cursor:pointer}.datachg input{position:absolute;inset:0;opacity:0;width:100%;height:100%;font-size:16px}
 .tp.swap-on{background:var(--y)!important;color:var(--yk)!important;border-color:var(--y)!important;transform:scale(1.08);box-shadow:0 0 0 4px rgba(255,212,0,.35)}.tp.swap-on .nota{background:var(--yk);color:var(--y)}
+.gmw{border-bottom:1px solid var(--line)}.gmw:last-child{border-bottom:0}.gmw .gm{border-bottom:0}.gn{font-family:var(--num);color:var(--mu);font-size:12px;min-width:16px}.ejb{background:none;border:0;font-size:16px;padding:4px 2px 4px 8px;cursor:pointer}
+.ejt{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center}.ejp{font-family:var(--disp);font-size:34px;color:var(--y)}.ejg{display:grid;grid-template-columns:auto 1fr 1fr auto;gap:6px;align-items:center}.ejg select{min-width:0;padding:8px 6px;font-size:16px}.ejg .pill{white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis;border:0;cursor:pointer}
 html,body{height:100%;overflow:hidden;overscroll-behavior:none;touch-action:manipulation}
 body{position:fixed;inset:0;width:100%;margin:0;padding:0}
 #scroller{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-top:env(safe-area-inset-top,0px)}
@@ -622,8 +624,27 @@ function placarLista(g,ta,tb){const lado=U.pl||'a';const t=lado==='a'?ta:tb;cons
  return h}
 function durCtrl(c){const ab=aberta();const gg=c&&ab&&jogoAtual(ab);const d=gg?(gg.dur||pel().duracao):pel().duracao;return `<div class="dur"><div class="lbl">Tempo de jogo</div><div class="dur-row"><button data-a="dur" data-v="-5">−5</button><button data-a="dur" data-v="-1">−1</button><div class="dur-v"><b>${d}</b><span>min</span></div><button data-a="dur" data-v="1">+1</button><button data-a="dur" data-v="5">+5</button></div>${c?'':`<div class="opts" style="justify-content:center">`+[5,7,8,10,12,15].map(m=>`<button class="opt ${d===m?'on':''}" data-a="durSet" data-v="${m}">${m} min</button>`).join('')+'</div>'}</div>`}
 function sbTeam(t,sc,lado,g){return `<div class="sbt"><div class="tn"><span class="sw" style="background:${t.cor}"></span><span>${esc(t.nome)}</span></div><div class="score">${sc}</div>${podePlacar()?`<div class="sbc"><button class="btn minus" data-a="golMenos" data-l="${lado}" aria-label="Tirar gol">−</button><button class="btn" data-a="golMais" data-l="${lado}">+ Gol</button></div>`:''}</div>`}
-function jogosList(r,list){const T=id=>r.times.find(t=>t.id===id)||{nome:'?',cor:'#555'};
- return list.map(g=>{const ta=T(g.a),tb=T(g.b);return `<div class="gm"><div class="t ${g.ga>g.gb?'w':''}"><span class="sw" style="background:${ta.cor}"></span><span>${esc(ta.nome)}</span></div><div class="s">${g.ga} × ${g.gb}</div><div class="t r ${g.gb>g.ga?'w':''}"><span>${esc(tb.nome)}</span><span class="sw" style="background:${tb.cor}"></span></div></div>`}).join('')}
+/* ============ EDITAR PARTIDAS ============ */
+function jogosList(r,list){const T=id=>r.times.find(t=>t.id===id)||{nome:'?',cor:'#555'};const adm=isAdm();
+ return list.map(g=>{const ta=T(g.a),tb=T(g.b);const n=r.jogos.indexOf(g)+1;
+  const gols=g.ev.length?`<div class="mu small" style="grid-column:1/-1;padding:0 0 8px 30px;line-height:1.35">${g.ev.map(e=>`⚽ ${esc(e.autor?nomeJ(e.autor):'sem nome')}${e.assist?` <span style="opacity:.7">(${esc(nomeJ(e.assist))})</span>`:''} · ${esc((e.lado==='a'?ta:tb).nome)}`).join('<br>')}</div>`:'';
+  return `<div class="gmw"><div class="gm"><div class="t ${g.ga>g.gb?'w':''}"><b class="gn">${n}</b><span class="sw" style="background:${ta.cor}"></span><span>${esc(ta.nome)}</span></div><div class="s">${g.ga} × ${g.gb}</div><div class="t r ${g.gb>g.ga?'w':''}"><span>${esc(tb.nome)}</span><span class="sw" style="background:${tb.cor}"></span>${adm?`<button class="ejb" data-a="ejAbrir" data-r="${r.id}" data-id="${g.id}" aria-label="Editar partida ${n}">✏️</button>`:''}</div></div>${gols}</div>`}).join('')}
+function ejRoster(r,tid,old){const t=r.times.find(x=>x.id===tid);return [...new Set([...(t?t.jogadores:[]),...(old||[])])].filter(id=>J(id))}
+function shEjogo(){const E=U.tmp.ej;const r=R(E.rid);const T=id=>r.times.find(t=>t.id===id)||{nome:'?'};
+ const ga=E.ev.filter(e=>e.lado==='a').length,gb=E.ev.filter(e=>e.lado==='b').length;
+ const opT=k=>r.times.map(t=>`<option value="${t.id}" ${E[k]===t.id?'selected':''}>${esc(t.nome)}</option>`).join('');
+ const ros={a:ejRoster(r,E.a,E.gid&&E.a===E.a0?E.pa0:null),b:ejRoster(r,E.b,E.gid&&E.b===E.b0?E.pb0:null)};
+ const opJ=(lado,sel,vazio)=>`<option value="">${vazio}</option>`+ros[lado].map(id=>`<option value="${id}" ${sel===id?'selected':''}>${esc(nomeJ(id))}</option>`).join('');
+ return `<h2>${E.gid?'Partida '+E.n:'Nova partida'}</h2>
+ <div class="ejt"><select data-f="ej" data-k="a">${opT('a')}</select><b class="ejp">${ga} × ${gb}</b><select data-f="ej" data-k="b">${opT('b')}</select></div>
+ <div class="lbl" style="margin-top:4px">Gols (o placar conta sozinho)</div>
+ ${E.ev.length?E.ev.map((e,i)=>`<div class="ejg"><button class="pill ${e.lado==='a'?'y':'n'}" data-a="ejLado" data-i="${i}" title="Trocar o time do gol">${esc(T(e.lado==='a'?E.a:E.b).nome)} ⇄</button>
+  <select data-f="ej" data-k="autor" data-i="${i}">${opJ(e.lado,e.autor,'Quem fez?')}</select><select data-f="ej" data-k="assist" data-i="${i}">${opJ(e.lado,e.assist,'Sem assist.')}</select><button class="x" data-a="ejDel" data-i="${i}" aria-label="Tirar gol">${I.x}</button></div>`).join(''):'<div class="mu small">Nenhum gol. Foi 0 × 0?</div>'}
+ <div class="grid2"><button class="btn sm line" data-a="ejAdd" data-l="a">+ Gol ${esc(T(E.a).nome)}</button><button class="btn sm line" data-a="ejAdd" data-l="b">+ Gol ${esc(T(E.b).nome)}</button></div>
+ <button class="btn block" data-a="ejSalvar">Salvar partida</button>
+ ${E.gid?`<button class="btn danger block" data-a="ejApagar">Apagar esta partida</button>`:''}
+ <button class="btn ghost block" data-a="fechaSheet">Cancelar</button>`}
+function ejRecalc(r){if(r.fechada){const c=campeaoCalc(r);r.campeaoId=c?c.id:null;r.coment=gerarComentarios(r)}}
 function sugestaoProx(r){const ids=r.times.map(t=>t.id);const fins=r.jogos.filter(g=>g.fim);if(!fins.length)return [ids[0],ids[1]||ids[0]];
  const l=fins[fins.length-1];const cnt={};ids.forEach(i=>cnt[i]=0);fins.forEach(g=>{cnt[g.a]++;cnt[g.b]++});
  let fica=l.ga>l.gb?l.a:l.gb>l.ga?l.b:null;const menos=ids.filter(i=>i!==fica).sort((a,b)=>cnt[a]-cnt[b]);
@@ -663,7 +684,7 @@ function vRodada(r){const p=pel();const s=sumula(r);const c=campeaoDe(r);const p
  const com=Object.entries(r.coment||{}).filter(([id])=>J(id));
  if(r.fechada&&com.length){const ord=id=>{const i=rows.findIndex(x=>x.id===id);return i<0?999:i};
   h+=`<section class="sec"><div class="sec-h"><h2>Resenha</h2>${isAdm()?'<button class="link" data-a="refazComent">Sortear de novo</button>':''}</div><div class="card stack" style="gap:14px">${com.sort((a,b)=>ord(a[0])-ord(b[0])).map(([id,o])=>`<div class="quote"><b>${CAT_LBL[o.cat]||''}</b>${esc(o.t)}</div>`).join('')}</div></section>`}
- const fins=r.jogos.filter(g=>g.fim);if(fins.length)h+=`<section class="sec"><h2>Placares</h2><div class="card" style="padding:2px 14px">${jogosList(r,fins)}</div></section>`;
+ const fins=r.jogos.filter(g=>g.fim);if(fins.length||isAdm())h+=`<section class="sec"><div class="sec-h"><h2>Partidas</h2><span class="mu small">${fins.length} em ordem</span></div>${isAdm()?'<div class="mu small">Errou algum placar ou gol? Toque no ✏️ da partida.</div>':''}<div class="card" style="padding:2px 14px">${jogosList(r,fins)}</div>${isAdm()?`<button class="btn sm ghost block" data-a="ejNovo" data-r="${r.id}">+ Adicionar partida esquecida</button>`:''}</section>`;
  h+=`<section class="sec"><h2>Súmula</h2><div class="tw"><table><thead><tr><th class="l">Jogador</th><th>P</th><th>G</th><th>A</th><th>E</th><th>V</th><th>F</th><th>Pts</th></tr></thead><tbody>${rows.map((x,i)=>`<tr class="${i<3?'top3':''}"><td class="l name">${esc(nomeJ(x.id))}</td><td>${x.p}</td><td>${x.g}</td><td>${x.a}</td><td>${x.e}</td><td>${x.v}</td><td>${x.f}</td><td class="pts">${fmt(x.pts)}</td></tr>`).join('')}</tbody></table></div></section>`;
  if(isAdm()&&r.fechada)h+=`<div class="sec"><button class="btn block ghost" data-a="reabrir" data-id="${r.id}">Reabrir rodada pra corrigir</button></div>`;
  if(!r.fechada)h+=`<div class="sec"><button class="btn block" data-a="tab" data-t="jogo">Abrir placar</button></div>`;
@@ -1113,7 +1134,7 @@ function shDesafio(){const me=U.sheet.de||S.atual||minhasAdmin()[0];const alvo=U
 /* ============ SHEETS ============ */
 function openSheet(k,d={}){U.sheet={k,...d};renderSheet()}
 function closeSheet(){U.sheet=null;U.gol=null;U.tmp={};renderSheet()}
-function renderSheet(){const el=$('#sheet');if(!U.sheet){el.innerHTML='';return}const f={auth:shAuth,novaSenha:shNovaSenha,convite:shConvite,conta:shConta,verPel:shVerPel,desafio:shDesafio,txt:()=>`<h2>Copie o texto</h2><textarea id="rkTxt" style="min-height:260px" readonly>${esc(U.sheet.t)}</textarea><div class="mu small">Segure no texto → Selecionar tudo → Copiar.</div><button class="btn ghost block" data-a="fechaSheet">Fechar</button>`,gol:shGol,perfil:shPerfil,jog:shJog,sum:shSum,conf:shConf,pel:shPel}[U.sheet.k];
+function renderSheet(){const el=$('#sheet');if(!U.sheet){el.innerHTML='';return}const f={auth:shAuth,novaSenha:shNovaSenha,convite:shConvite,conta:shConta,verPel:shVerPel,desafio:shDesafio,txt:()=>`<h2>Copie o texto</h2><textarea id="rkTxt" style="min-height:260px" readonly>${esc(U.sheet.t)}</textarea><div class="mu small">Segure no texto → Selecionar tudo → Copiar.</div><button class="btn ghost block" data-a="fechaSheet">Fechar</button>`,gol:shGol,ejogo:shEjogo,perfil:shPerfil,jog:shJog,sum:shSum,conf:shConf,pel:shPel}[U.sheet.k];
  el.innerHTML=`<div class="scrim" data-a="scrim"><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${f()}</div></div>`}
 function shGol(){const r=aberta();const g=jogoAtual(r);const G=U.gol;const tid=G.lado==='a'?g.a:g.b;const t=r.times.find(x=>x.id===tid);const pl=G.lado==='a'?g.pa:g.pb;
  return `<div class="row"><span class="sw" style="width:22px;height:22px;background:${t.cor}"></span><h2 class="grow">Gol do ${esc(t.nome)}</h2></div>
@@ -1227,6 +1248,18 @@ const A={
   baixarBlob(b,rsNomeArq(r));toast('Imagem baixada. É só mandar no grupo!')},
  async rsBaixar(d){const r=R(d.id);const cv=await rsCanvas(r);const b=await new Promise(q=>cv.toBlob(q,'image/png'));baixarBlob(b,rsNomeArq(r));toast('Resumo da rodada baixado.')},
  async rsCopiar(d){const t=rsTexto(R(d.id));try{await navigator.clipboard.writeText(t);toast('Texto copiado! Cola no grupo do WhatsApp.')}catch(e){openSheet('txt',{t})}},
+ ejAbrir(d){const r=R(d.r);const g=r.jogos.find(x=>x.id===d.id);U.tmp={ej:{rid:r.id,gid:g.id,n:r.jogos.indexOf(g)+1,a:g.a,b:g.b,a0:g.a,b0:g.b,pa0:g.pa,pb0:g.pb,ev:g.ev.map(e=>({...e}))}};openSheet('ejogo',{})},
+ ejNovo(d){const r=R(d.r);if(r.times.length<2)return toast('Precisa ter pelo menos 2 times.');U.tmp={ej:{rid:r.id,gid:null,a:r.times[0].id,b:r.times[1].id,ev:[]}};openSheet('ejogo',{})},
+ ejLado(d){const e=U.tmp.ej.ev[+d.i];e.lado=e.lado==='a'?'b':'a';e.autor=null;e.assist=null;renderSheet()},
+ ejDel(d){U.tmp.ej.ev.splice(+d.i,1);renderSheet()},
+ ejAdd(d){U.tmp.ej.ev.push({id:uid(),lado:d.l,autor:null,assist:null});renderSheet()},
+ ejSalvar(){const E=U.tmp.ej;const r=R(E.rid);if(E.a===E.b)return toast('Escolha dois times diferentes.');
+  const pa=ejRoster(r,E.a,E.gid&&E.a===E.a0?E.pa0:null),pb=ejRoster(r,E.b,E.gid&&E.b===E.b0?E.pb0:null);
+  const ga=E.ev.filter(e=>e.lado==='a').length,gb=E.ev.filter(e=>e.lado==='b').length;
+  if(E.gid){const g=r.jogos.find(x=>x.id===E.gid);Object.assign(g,{a:E.a,b:E.b,pa,pb,ev:E.ev,ga,gb,fim:true})}
+  else r.jogos.push({id:uid(),a:E.a,b:E.b,pa,pb,ev:E.ev,ga,gb,fim:true,el:0,t0:null});
+  ejRecalc(r);save();closeSheet();render();toast(E.gid?'Partida '+E.n+' corrigida. Súmula e ranking atualizados.':'Partida adicionada.')},
+ ejApagar(){const E=U.tmp.ej;openSheet('conf',{titulo:'Apagar a partida '+E.n+'?',texto:'Os gols e assistências dela saem da súmula e do ranking.',ok:'Apagar partida',perigo:1,acao:'apagaJogo',rid:E.rid,id:E.gid})},
  async rkShare(){toast('Gerando imagem…');const b=await rkBlob();const f=new File([b],rkNomeArq(),{type:'image/png'});
   try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],text:rkTexto()});return}}catch(e){if(e&&e.name==='AbortError')return}
   baixarBlob(b,rkNomeArq());toast('Imagem baixada. É só mandar no grupo!')},
@@ -1243,6 +1276,7 @@ const A={
  durSet(d){if(!isAdm())return;pel().duracao=Number(d.v);save();render()},
  frasesPadrao(){pel().frases=JSON.parse(JSON.stringify(FRASES_PADRAO));save();render();toast('Frases originais de volta.')},
  confOk(){const c=U.sheet;closeSheet();const r=aberta();
+  if(c.acao==='apagaJogo'){const rr=R(c.rid);rr.jogos=rr.jogos.filter(g=>g.id!==c.id);ejRecalc(rr);save();render();return toast('Partida apagada.')}
   if(c.acao==='montar'){montarTimes();return}
   if(c.acao==='fecharDia'){const cp=campeaoCalc(r);r.campeaoId=cp?cp.id:null;r.fechada=true;r.coment=gerarComentarios(r);U.per=null;U.tab='rodadas';U.rodada=r.id;save();SCRL.scrollTo(0,0);render();toast('Dia fechado! Ranking atualizado.')}
   else if(c.acao==='cancelJogo'){r.jogos=r.jogos.filter(g=>g.fim);save();render()}
@@ -1314,6 +1348,7 @@ document.addEventListener('change',e=>{const el=e.target;const f=el.dataset.f;
  else if(f==='frase'){p.frases[el.dataset.k]=el.value.split('\n').map(s=>s.trim()).filter(Boolean);save();toast('Frases salvas.')}
  else if(f==='fUf'){G.uf=el.value;G.cidade='';render()}
  else if(f==='fCid'){G.cidade=el.value;render()}
+ else if(f==='ej'){const E=U.tmp.ej;if(!E)return;const k=el.dataset.k;if(k==='a'||k==='b'){if(el.value===E[k==='a'?'b':'a'])return toast('Escolha dois times diferentes.'),renderSheet();E[k]=el.value;E.ev.forEach(e=>{if(e.lado===k){e.autor=null;e.assist=null}})}else{const e=E.ev[+el.dataset.i];e[k]=el.value||null;if(k==='autor'&&e.assist===e.autor)e.assist=null}renderSheet()}
  else if(f==='rodData'){const r=S.rodadas.find(x=>x.id===el.dataset.id);if(r&&el.value&&el.value!==r.data){r.data=el.value;save();render();toast('Data trocada pra '+diaSem(r.data)+', '+dm(r.data)+'.')}}
  else if(f==='pelFiltro'){U.pelFiltro=el.value;render()}
  else if(f==='h2h'){U.h2h[+el.dataset.i]=el.value||null;render()}});
