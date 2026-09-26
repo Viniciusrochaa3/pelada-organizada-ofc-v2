@@ -833,7 +833,7 @@ function tmBlob(){return tmCanvas().then(c=>new Promise(r=>c.toBlob(r,'image/png
 
 /* ============ RESUMO DA RODADA (imagem pro grupo) ============ */
 function rsDados(r){const p=P(r.peladaId);const s=sumula(r);const c=campeaoDe(r);
- const rows=Object.keys(s).filter(id=>s[id].p&&J(id)).map(id=>({id,...s[id],pts:pontos(s[id],p.pesos)})).sort((a,b)=>b.pts-a.pts||b.v-a.v||b.g-a.g);
+ const nj=id=>r.jogos.filter(g=>g.fim&&((g.pa||[]).includes(id)||(g.pb||[]).includes(id))).length;const rows=Object.keys(s).filter(id=>s[id].p&&J(id)).map(id=>({id,...s[id],j:nj(id),pts:pontos(s[id],p.pesos)})).sort((a,b)=>b.pts-a.pts||b.v-a.v||b.g-a.g);
  const ord=id=>{const i=rows.findIndex(x=>x.id===id);return i<0?999:i};
  const todas=Object.entries(r.coment||{}).filter(([id])=>J(id)).sort((a,b)=>ord(a[0])-ord(b[0])).map(([,o])=>o);
  const pri=['campeao','artilheiro','garcom','ruim','zero','bom','medio','faltou'];const com=[];const usa=new Set();
@@ -846,7 +846,7 @@ function rsTexto(r){const {p,c,rows,com,rk,per}=rsDados(r);
  let t=`*🏆 RESUMO DA RODADA*\n*${p.nome}*\n_${diaSem(r.data)}, ${dmy(r.data)}_\n`;
  if(c)t+=`\n*CAMPEÃO: ${c.nome.toUpperCase()}* 🎉\nParabéns ${c.jogadores.map(nomeJ).join(', ')}!\n`;
  if(com.length)t+=`\n*😂 RESENHA*\n`+com.map(o=>`• ${o.t}`).join('\n')+'\n';
- t+=`\n*📋 SÚMULA DO DIA*\n`+rows.map((x,i)=>`${i+1}. ${nomeJ(x.id)} — *${fmt(x.pts)} pts* (${x.g}G ${x.a}A ${x.v}V)`).join('\n')+'\n';
+ t+=`\n*📋 SÚMULA DO DIA*\n_J jogos · V vitórias · E empates · G gols · A assist. · 📸 foto_\n`+rows.map((x,i)=>`${i+1}. ${nomeJ(x.id)} — *${fmt(x.pts)} pts* (${x.j}J ${x.v}V ${x.e}E ${x.g}G ${x.a}A${x.f?' 📸':''})`).join('\n')+'\n';
  if(rk.length)t+=`\n*🏅 RANKING DE ${MESES[per.mes-1].toUpperCase()}*\n`+rk.map((x,i)=>`${['🥇','🥈','🥉'][i]||(i+1)+'º'} ${nomeJ(x.id)} — ${fmt(x.pts)} pts`).join('\n')+'\n';
  return t+`\n_Pelada Organizada OFC_`}
 async function rsCanvas(r){try{await document.fonts.ready}catch(e){}
@@ -861,7 +861,7 @@ async function rsCanvas(r){try{await document.fonts.ready}catch(e){}
  const comL=com.map(o=>({cat:(CAT_LBL[o.cat]||'').toUpperCase(),ls:wrap('“'+o.t+'”',`500 30px ${B}`,W-2*P-60)}));
  const HEAD=210,CAMP=c?(foto?FH+40:0)+130+parab.length*40+30:0;
  const RES=com.length?90+comL.reduce((s,o)=>s+34+o.ls.length*40+22,0)+10:0;
- const RH=58,SUM=110+rows.length*RH+20;const RK=rk.length?110+rk.length*RH+20:0;
+ const RH=58,SUM=140+rows.length*RH+20;const RK=rk.length?110+rk.length*RH+20:0;
  const H=HEAD+CAMP+RES+SUM+RK+150;
  const cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
  const rr=(X,Y,w,h,rad)=>{x.beginPath();x.moveTo(X+rad,Y);x.arcTo(X+w,Y,X+w,Y+h,rad);x.arcTo(X+w,Y+h,X,Y+h,rad);x.arcTo(X,Y+h,X,Y,rad);x.arcTo(X,Y,X+w,Y,rad);x.closePath()};
@@ -894,7 +894,8 @@ async function rsCanvas(r){try{await document.fonts.ready}catch(e){}
    x.font=`900 26px ${D}`;x.textAlign='center';x.fillText(i+1,P+36,cy-1);x.textAlign='left';
    x.fillStyle='#F6F5EF';x.font=`${i<3?700:600} 30px ${B}`;x.fillText(corta(nomeJ(rw.id),cx-(P+76)-10),P+76,cy);
    x.textAlign='right';cols.forEach((cl,j)=>{const last=j===cols.length-1;x.fillStyle=last?'#FFD400':'#F6F5EF';x.font=`${last?700:600} ${last?32:28}px ${N}`;x.fillText(cl[1](rw),pos[j],cy)});x.textAlign='left';y+=RH});y+=30};
- tabela('📋 SÚMULA DO DIA',rows,[['G',r=>r.g,64],['A',r=>r.a,64],['V',r=>r.v,64],['PTS',r=>fmt(r.pts),110]]);
+ tabela('📋 SÚMULA DO DIA',rows,[['J',r=>r.j,58],['V',r=>r.v,58],['E',r=>r.e,58],['G',r=>r.g,58],['A',r=>r.a,58],['F',r=>r.f?'📸':'–',58],['PTS',r=>fmt(r.pts),100]]);
+ x.fillStyle='#A09E92';x.font=`500 22px ${B}`;x.fillText('J jogos · V vitórias · E empates · G gols · A assistências · F foto de campeão',P,y-6);y+=24;
  if(rk.length)tabela('🏅 RANKING DE '+MESES[per.mes-1].toUpperCase(),rk,[['JOGOS',r=>r.p,100],['PTS',r=>fmt(r.pts),110]]);
  x.fillStyle='#2F2E29';x.fillRect(P,y,W-2*P,2);x.fillStyle='#FFD400';x.font=`800 32px ${D}`;x.fillText('PELADA ORGANIZADA OFC',P,y+60);
  x.fillStyle='#A09E92';x.font=`600 24px ${B}`;x.textAlign='right';x.fillText('Até a próxima! ⚽',W-P,y+58);x.textAlign='left';
