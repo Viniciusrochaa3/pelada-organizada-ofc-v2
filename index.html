@@ -999,7 +999,7 @@ async function carregarMembros(){const pid=S.atual;const [m,c,q]=await Promise.a
  G.membros=m.data||[];G.codigo=c.data&&c.data.codigo;G.pedidosPel=q.data||[];if(G.view==='app')render()}
 async function posLogin(){await carregarMinhas();
  if(G.convite){const c=G.convite;G.convite=null;G.conviteInfo=null;const {data,error}=await sb.rpc('entrar_convite',{c});
-  if(error){toast('Convite inválido ou expirado.')}else{await carregarMinhas();toast('Pronto! Você entrou na pelada.');return abrirPelada(data)}}
+  if(error){toast('Convite inválido ou expirado.')}else{await carregarMinhas();if(G.minhas[data])return abrirPelada(data);toast('Pedido enviado! O admin da pelada precisa aprovar sua entrada.')}}
  const ids=Object.keys(G.minhas);let last=null;try{last=localStorage.getItem(K+'_pel')}catch(e){}
  if(ids.length)return abrirPelada(ids.includes(last)?last:ids[0]);
  G.loading=false;G.view='vitrine';render()}
@@ -1061,7 +1061,7 @@ const linkConvite=()=>G.codigo?location.origin+location.pathname+'?convite='+G.c
 function vConvidar(){const l=linkConvite();const eu=G.user&&G.user.id;
  let h=backMais('Convidar')+`<div class="sec"><div class="card stack"><div class="lbl">Link de convite</div><div class="linkbox">${l?esc(l):'Carregando…'}</div>
  <div class="grid2"><button class="btn" data-a="copiaLink">Copiar link</button><a class="btn ghost" href="https://wa.me/?text=${encodeURIComponent('Entra na nossa pelada no Pelada Organizada OFC: '+l)}" target="_blank" rel="noopener">WhatsApp</a></div>
- <div class="mu small">Quem abrir o link cria a conta e já cai direto na <b>${esc(pel().nome)}</b> como jogador. Jogador vê tudo, mas não edita nada. Pra ter mais um admin, use <b>Tornar admin</b> nos membros.</div>
+ <div class="mu small">Quem abrir o link cria a conta e manda um <b>pedido</b> pra entrar na <b>${esc(pel().nome)}</b>. Só entra quando um admin aprovar aqui embaixo. Jogador vê tudo, mas não edita nada. Pra ter mais um admin, use <b>Tornar admin</b> nos membros.</div>
  <button class="link" style="text-align:left" data-a="novoLink">Gerar link novo (o antigo para de funcionar)</button></div></div>`;
  h=h.replace('</h1></div>','</h1></div>'+pedidosHTML());
  h+=`<div class="sec"><div class="sec-h"><h2>Membros</h2><span class="mu small">${G.membros.length}</span></div><div class="card" style="padding:2px 14px">${G.membros.map(m=>`<div class="lr"><div class="av sm">${esc(iniciais(m.nome||'?'))}</div><div class="grow"><b>${esc(m.nome||'Sem nome')}</b>${m.user_id===eu?' <span class="mu small">(você)</span>':''}<div><span class="pill ${m.papel==='admin'?'y':'n'}">${m.papel==='admin'?'Admin':'Jogador'}</span></div></div>
@@ -1292,8 +1292,8 @@ const A={
  verPel(d){openSheet('verPel',{id:d.id})},
  temConvite(){openSheet('convite')},
  irVitrine(){G.view='vitrine';closeSheet();SCRL.scrollTo(0,0);render()},
- async usarConvite(){let c=$('#cvCod').value.trim();const m=c.match(/convite=([a-z0-9]+)/i);if(m)c=m[1];if(!c)return toast('Cole o link ou o código.');
-  const {data,error}=await sb.rpc('entrar_convite',{c});if(error)return toast('Convite inválido.');closeSheet();await carregarMinhas();await carregarVitrine();toast('Você entrou na pelada!');abrirPelada(data)},
+ async usarConvite(){const irVitrineSafe=()=>{G.view='vitrine';render()};let c=$('#cvCod').value.trim();const m=c.match(/convite=([a-z0-9]+)/i);if(m)c=m[1];if(!c)return toast('Cole o link ou o código.');
+  const {data,error}=await sb.rpc('entrar_convite',{c});if(error)return toast('Convite inválido.');closeSheet();await carregarMinhas();await carregarVitrine();if(G.minhas[data])return abrirPelada(data);toast('Pedido enviado! O admin da pelada precisa aprovar sua entrada.');irVitrineSafe()},
  trocarPel(d){closeSheet();if(G.minhas[d.id])abrirPelada(d.id)},
  novaPel(){if(!G.user)return openSheet('auth',{modo:'criar'});U.tmp={};openSheet('pel')},
  async salvaPel(d,e,btn){const nome=$('#npNome').value.trim();if(nome.length<2)return toast('Coloca o nome da pelada.');
