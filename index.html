@@ -324,6 +324,8 @@ a.btn{text-decoration:none}
 .tp.swap-on{background:var(--y)!important;color:var(--yk)!important;border-color:var(--y)!important;transform:scale(1.08);box-shadow:0 0 0 4px rgba(255,212,0,.35)}.tp.swap-on .nota{background:var(--yk);color:var(--y)}
 .gmw{border-bottom:1px solid var(--line)}.gmw:last-child{border-bottom:0}.gmw .gm{border-bottom:0}.gn{font-family:var(--num);color:var(--mu);font-size:12px;min-width:16px}.ejb{background:none;border:0;font-size:16px;padding:4px 2px 4px 8px;cursor:pointer}
 .ejt{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center}.ejp{font-family:var(--disp);font-size:34px;color:var(--y)}.ejg{display:grid;grid-template-columns:auto 1fr 1fr auto;gap:6px;align-items:center}.ejg select{min-width:0;padding:8px 6px;font-size:16px}.ejg .pill{white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis;border:0;cursor:pointer}
+.pz{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 4px;border-radius:7px;font:800 12px var(--num,sans-serif);margin-right:6px;border:1.5px solid transparent;background:#2a2a27;color:#bbb}.pz-Z{color:#60A5FA;border-color:#60A5FA55}.pz-M{color:#4ADE80;border-color:#4ADE8055}.pz-A{color:#F87171;border-color:#F8717155}.pz-x{color:var(--y);border:1.5px dashed var(--y);background:transparent}
+.pzsel{display:inline-flex;gap:4px;margin-right:8px}.pzsel .pz{margin:0;cursor:pointer;min-width:30px;height:30px;font-size:13px;opacity:.45}.pzsel .pz.on{opacity:1;background:currentColor}.pzsel .pz-Z.on{background:#60A5FA;color:#0B0B0A}.pzsel .pz-M.on{background:#4ADE80;color:#0B0B0A}.pzsel .pz-A.on{background:#F87171;color:#0B0B0A}
 html,body{height:100%;overflow:hidden;overscroll-behavior:none;touch-action:manipulation}
 body{position:fixed;inset:0;width:100%;margin:0;padding:0}
 #scroller{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-top:env(safe-area-inset-top,0px)}
@@ -452,16 +454,19 @@ function perLabel(per){return per.tipo==='ano'?'Ano '+per.ano:MESES[per.mes-1]+'
 
 /* ============ SORTEIO BALANCEADO ============ */
 function sortear(ids,nt,prev){
- const n=id=>(J(id)||{}).nota||3;
+ const n=id=>(J(id)||{}).nota||3;const ps=id=>(J(id)||{}).pos||null;
+ const posPen=T=>['Z','M','A'].reduce((s,k)=>{const c=T.map(t=>t.filter(id=>ps(id)===k).length);return s+Math.max(0,Math.max(...c)-Math.min(...c)-1)},0);
  const sig=T=>T.map(t=>[...t].sort().join(',')).sort().join('|');
  const prevSig=prev&&prev.length?sig(prev.map(t=>t.jogadores.filter(x=>ids.includes(x)))):null;
  const size=Array.from({length:nt},(_,i)=>Math.floor(ids.length/nt)+(i<ids.length%nt?1:0));
- const dif=T=>{const f=T.map(t=>t.reduce((s,id)=>s+n(id),0)/Math.max(1,t.length));return Math.max(...f)-Math.min(...f)};
+ const dif0=T=>{const f=T.map(t=>t.reduce((s,id)=>s+n(id),0)/Math.max(1,t.length));return Math.max(...f)-Math.min(...f)};
+ const dif=T=>dif0(T)+0.35*posPen(T);
  const cands=[];
  for(let tr=0;tr<500;tr++){
   const ord=ids.map(id=>({id,k:n(id)+(Math.random()-.5)*1.5})).sort((a,b)=>b.k-a.k);
   const T=Array.from({length:nt},()=>[]);const sum=Array(nt).fill(0);
-  ord.forEach(p=>{let b=-1;for(let i=0;i<nt;i++){if(T[i].length>=size[i])continue;const m=sum[i]/Math.max(1,T[i].length);if(b<0||m<sum[b]/Math.max(1,T[b].length)||(m===sum[b]/Math.max(1,T[b].length)&&Math.random()<.5))b=i}T[b].push(p.id);sum[b]+=n(p.id)});
+  ord.sort((x,y)=>(ps(y.id)?1:0)-(ps(x.id)?1:0));const pc=k=>T.map(t=>t.filter(id=>ps(id)===k).length);
+  ord.forEach(p=>{const k=ps(p.id);const c=k?pc(k):null;let b=-1;const sc=i=>(c?c[i]*1.5:0)+sum[i]/Math.max(1,T[i].length);for(let i=0;i<nt;i++){if(T[i].length>=size[i])continue;if(b<0||sc(i)<sc(b)||(sc(i)===sc(b)&&Math.random()<.5))b=i}T[b].push(p.id);sum[b]+=n(p.id)});
   let cur=dif(T);
   for(let it=0;it<80;it++){const i=Math.random()*nt|0,j=Math.random()*nt|0;if(i===j||!T[i].length||!T[j].length)continue;const a=Math.random()*T[i].length|0,b=Math.random()*T[j].length|0;[T[i][a],T[j][b]]=[T[j][b],T[i][a]];const o=dif(T);if(o<=cur)cur=o;else [T[i][a],T[j][b]]=[T[j][b],T[i][a]]}
   cands.push({T,d:cur,s:sig(T)})}
@@ -469,6 +474,9 @@ function sortear(ids,nt,prev){
  const bons=[...new Map(cands.filter(c=>c.d<=best+0.2&&c.s!==prevSig).map(c=>[c.s,c])).values()];
  const pick=bons.length?bons[Math.random()*bons.length|0]:(cands.find(c=>c.s!==prevSig)||cands[0]);
  return pick.T.map((t,i)=>({id:uid(),nome:'Time '+(i+1),cor:CORES[i%CORES.length].c,jogadores:shuffle(t)}))}
+const POS=['Z','M','A'];const POSN={Z:'Zagueiro',M:'Meio-campo',A:'Atacante'};
+const posTag=id=>{const j=J(id)||{};if(j.goleiro)return '';return j.pos?`<span class="pz pz-${j.pos}">${j.pos}</span>`:'<span class="pz pz-x" title="Sem posição">?</span>'};
+const posCont=t=>POS.map(k=>k+t.jogadores.filter(id=>(J(id)||{}).pos===k).length).join(' ');
 const somaNota=t=>t.jogadores.reduce((s,id)=>s+((J(id)||{}).nota||0),0);
 
 /* ============ COMENTÁRIOS ============ */
@@ -573,7 +581,7 @@ function vSorteio(r){const p=pel();const el=elenco();const n=r.presentes.filter(
  const ntSug=Math.max(2,Math.floor(n/p.porTime)||2);if(!U.nt)U.nt=ntSug;
  let h=`<div class="sec-h"><h2>Quem veio?</h2><span class="pill ${n?'y':'n'}">${n} presentes</span></div>
  <div class="row"><button class="btn sm ghost" data-a="presTodos">Marcar elenco todo</button><button class="btn sm ghost" data-a="presNenhum">Limpar</button></div>
- ${(()=>{const pk=j=>{const on=r.presentes.includes(j.id);return `<button class="pick ${on?'on':''}" data-a="pres" data-id="${j.id}"><span class="box">${on?I.check:''}</span><span class="grow" style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(j.apelido||j.nome)}</span>${j.goleiro?'<span class="pill n">🧤</span>':`<span class="nota">${fmtNota(j.nota)}</span>`}</button>`};
+ ${(()=>{const pk=j=>{const on=r.presentes.includes(j.id);return `<button class="pick ${on?'on':''}" data-a="pres" data-id="${j.id}"><span class="box">${on?I.check:''}</span><span class="grow" style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(j.apelido||j.nome)}</span>${j.goleiro?'<span class="pill n">🧤</span>':`${posTag(j.id)}<span class="nota">${fmtNota(j.nota)}</span>`}</button>`};
   const fx=el.filter(j=>!j.avulso&&!j.goleiro),av=el.filter(j=>j.avulso&&!j.goleiro),gk=el.filter(j=>j.goleiro);
   return `<div class="lbl">Elenco</div><div class="picks">${fx.map(pk).join('')}</div>
   <div class="sec-h" style="margin-top:6px"><div class="lbl">Avulsos</div><button class="btn sm line" data-a="novoAvulso">+ Avulso</button></div>
@@ -586,12 +594,12 @@ function vSorteio(r){const p=pel();const el=elenco();const n=r.presentes.filter(
  if(r.times.length){const jogou=r.jogos.length>0;
   h+=`<div class="sec-h" style="margin-top:8px"><h2>Times</h2><button class="btn sm ghost" data-a="addTime">+ Time</button></div><div class="mu small">✋ <b>Arraste o nome</b> pra outro time (no PC, com o mouse). Soltou <b>em cima de um jogador</b>? Os dois trocam de time. Também dá pra tocar num nome e depois no outro.</div>`;
   const semTime=r.presentes.filter(id=>J(id)&&!ehGol(id)&&!r.times.some(t=>t.jogadores.includes(id)));const gkPres=r.presentes.filter(ehGol);
-  h+=`<div class="team pool" data-drop="pool" ${U.sel?`data-a="mover" data-t="pool"`:''}><div class="team-h"><b class="grow" style="font-family:var(--disp);font-size:18px;text-transform:uppercase">Sem time</b><span class="pill ${semTime.length?'y':'n'}">${semTime.length}</span></div><div class="team-p">${semTime.map(id=>`<button class="tp ${U.sel===id?'sel':''}" data-a="selJ" data-id="${id}" data-drag="${id}">${esc(nomeJ(id))} <span class="nota">${fmtNota((J(id)||{}).nota)}</span></button>`).join('')||'<span class="mu small">Todo mundo já tem time ✅</span>'}</div></div>`;
+  h+=`<div class="team pool" data-drop="pool" ${U.sel?`data-a="mover" data-t="pool"`:''}><div class="team-h"><b class="grow" style="font-family:var(--disp);font-size:18px;text-transform:uppercase">Sem time</b><span class="pill ${semTime.length?'y':'n'}">${semTime.length}</span></div><div class="team-p">${semTime.map(id=>`<button class="tp ${U.sel===id?'sel':''}" data-a="selJ" data-id="${id}" data-drag="${id}">${posTag(id)}${esc(nomeJ(id))} <span class="nota">${fmtNota((J(id)||{}).nota)}</span></button>`).join('')||'<span class="mu small">Todo mundo já tem time ✅</span>'}</div></div>`;
   if(jogou)h+=`<div class="mu small">Já tem jogo registrado: mudanças valem pros próximos jogos.</div>`;
   const somas=r.times.map(somaNota);
   h+=r.times.map((t,ti)=>`<div class="team" data-drop="${t.id}" style="border-color:${U.sel?'var(--y)':'var(--line)'}" ${U.sel?`data-a="mover" data-t="${t.id}"`:''}>
-   <div class="team-h"><span class="sw" style="background:${t.cor}"></span><input id="tn_${t.id}" data-f="tnome" data-id="${t.id}" value="${esc(t.nome)}" class="grow" aria-label="Nome do time"><span class="pill n">${t.jogadores.length} · ${cor(t.cor).n}</span><span class="nota">Σ ${fmtNota(somas[ti])}</span>${t.jogadores.length?'':`<button class="x" data-a="delTime" data-id="${t.id}" aria-label="Remover time" style="color:var(--mu)">${I.x}</button>`}</div>
-   <div class="team-p">${t.jogadores.map(id=>`<button class="tp ${U.sel===id?'sel':''}" data-a="selJ" data-id="${id}" data-drag="${id}">${esc(nomeJ(id))} <span class="nota">${fmtNota((J(id)||{}).nota)}</span></button>`).join('')||'<span class="mu small">Arraste os nomes pra cá</span>'}</div>
+   <div class="team-h"><span class="sw" style="background:${t.cor}"></span><input id="tn_${t.id}" data-f="tnome" data-id="${t.id}" value="${esc(t.nome)}" class="grow" aria-label="Nome do time"><span class="pill n">${t.jogadores.length} · ${posCont(t)}</span><span class="nota">Σ ${fmtNota(somas[ti])}</span>${t.jogadores.length?'':`<button class="x" data-a="delTime" data-id="${t.id}" aria-label="Remover time" style="color:var(--mu)">${I.x}</button>`}</div>
+   <div class="team-p">${t.jogadores.map(id=>`<button class="tp ${U.sel===id?'sel':''}" data-a="selJ" data-id="${id}" data-drag="${id}">${posTag(id)}${esc(nomeJ(id))} <span class="nota">${fmtNota((J(id)||{}).nota)}</span></button>`).join('')||'<span class="mu small">Arraste os nomes pra cá</span>'}</div>
    <div class="row" style="padding:0 14px 12px"><div class="swatches">${CORES.map(c=>`<button class="swb ${t.cor===c.c?'on':''}" style="background:${c.c}" data-a="tcor" data-id="${t.id}" data-c="${c.c}" aria-label="${c.n}"></button>`).join('')}</div><span class="grow"></span><span class="mu small">média ${fmtNota((somas[ti]/Math.max(1,t.jogadores.length)).toFixed(1))}</span></div></div>`).join('');
   if(gkPres.length)h+=`<div class="team"><div class="team-h"><b class="grow" style="font-family:var(--disp);font-size:18px;text-transform:uppercase">🧤 Goleiros</b><span class="pill y">${gkPres.length}</span></div><div class="team-p">${gkPres.map(id=>`<span class="tp">${esc(nomeJ(id))}</span>`).join('')}</div></div>`;
   h+=`<div class="card stack" style="border-color:var(--y)"><div class="lbl">Mandar os times no grupo</div><div class="share" style="margin:0"><button class="btn sm" data-a="tmShare">${I.share} Mandar no WhatsApp</button><button class="btn sm ghost" data-a="tmBaixar">${I.down} Baixar imagem</button><button class="btn sm ghost" data-a="tmCopiar">Copiar texto</button></div></div>`;
@@ -702,8 +710,9 @@ const backMais=t=>`<button class="back" data-a="irMais" data-v="">${I.back} Mais
 function vJogadores(){const el=elenco();const per={tipo:'ano',ano:new Date().getFullYear()};const ag=agregado(per);const m={};ag.rows.forEach(r=>m[r.id]=r);
  let h=backMais('Jogadores')+`<div class="sec">`;
  if(isAdm())h+=`<div class="grid2"><button class="btn" data-a="novoJog">+ Jogador</button><button class="btn line" data-a="novoAvulsoJ">+ Avulso</button></div>`;
- const lin=j=>`<div class="lr tap" data-a="perfil" data-id="${j.id}">${av(j.id)}<div class="grow"><div style="font-weight:700">${esc(j.apelido||j.nome)}</div><div class="mu small">${j.apelido?esc(j.nome)+' · ':''}${m[j.id]?`${m[j.id].p} jogos · ${fmt(m[j.id].pts)} pts no ano`:'sem jogos no ano'}</div></div>${isAdm()&&!j.goleiro?`<span class="nota">${fmtNota(j.nota)}</span>`:''}</div>`;
+ const lin=j=>`<div class="lr tap" data-a="perfil" data-id="${j.id}">${av(j.id)}<div class="grow"><div style="font-weight:700">${esc(j.apelido||j.nome)}</div><div class="mu small">${j.apelido?esc(j.nome)+' · ':''}${m[j.id]?`${m[j.id].p} jogos · ${fmt(m[j.id].pts)} pts no ano`:'sem jogos no ano'}</div></div>${isAdm()&&!j.goleiro?`<span class="pzsel">${POS.map(k=>`<button class="pz pz-${k} ${j.pos===k?'on':''}" data-a="setPos" data-id="${j.id}" data-v="${k}" aria-label="${POSN[k]}">${k}</button>`).join('')}</span><span class="nota">${fmtNota(j.nota)}</span>`:(!j.goleiro?posTag(j.id):'')}</div>`;
  const fx=el.filter(j=>!j.avulso&&!j.goleiro),avs=el.filter(j=>j.avulso&&!j.goleiro),gks=el.filter(j=>j.goleiro);
+ if(isAdm()){const semP=el.filter(j=>!j.goleiro&&!j.pos).length;h+=`<div class="card" style="border-color:${semP?'var(--y)':'var(--line)'}"><b>Posições: Z zagueiro · M meio · A atacante</b><div class="mu small">${semP?`⚠️ ${semP} jogador${semP>1?'es':''} sem posição (<span class="pz pz-x">?</span>). Toque em Z, M ou A do lado do nome.`:'✅ Todo mundo com posição.'} O sorteio usa a nota <b>e</b> a posição pra equilibrar.</div></div>`}
  h+=`<div class="sec-h"><h2>Elenco</h2><span class="mu small">${fx.length}</span></div>`+(fx.length?`<div class="card" style="padding:2px 14px">${fx.map(lin).join('')}</div>`:empty('Nenhum jogador no elenco.'));
  h+=`<div class="sec-h" style="margin-top:8px"><h2>Avulsos</h2><span class="mu small">${avs.length}</span></div>`+(avs.length?`<div class="card" style="padding:2px 14px">${avs.map(lin).join('')}</div>`:empty('Nenhum avulso ainda. Cadastre aqui ou direto no Sorteio.'));
  h+=`<div class="sec-h" style="margin-top:8px"><h2>🧤 Goleiros</h2><span class="mu small">${gks.length}</span></div>`+(gks.length?`<div class="card" style="padding:2px 14px">${gks.map(lin).join('')}</div>`:empty('Nenhum goleiro ainda.',isAdm()?`<button class="btn sm" data-a="novoGoleiro">+ Goleiro</button>`:''));
@@ -931,7 +940,7 @@ const minhasAdmin=()=>Object.keys(G.minhas).filter(id=>G.minhas[id]==='admin');
 
 const pelFromRow=r=>{const c=r.config||{};return {id:r.id,nome:r.nome,cidade:r.cidade||'',uf:r.uf||'SP',dia:r.dia??1,logo:r.logo||null,porTime:c.porTime||5,duracao:c.duracao||8,golsFim:+c.golsFim||0,pesos:{...PESOS_PADRAO,...(c.pesos||{})},frases:c.frases||JSON.parse(JSON.stringify(FRASES_PADRAO)),avulsoRank:!!c.avulsoRank}};
 const pelToRow=p=>({id:p.id,nome:p.nome,cidade:p.cidade||'',uf:p.uf||'SP',dia:+p.dia||0,logo:p.logo||null,config:{porTime:+p.porTime||5,duracao:+p.duracao||8,golsFim:+p.golsFim||0,pesos:p.pesos,frases:p.frases,avulsoRank:!!p.avulsoRank}});
-const jogToRow=j=>({id:j.id,pelada_id:j.peladaId,nome:j.nome,apelido:j.apelido||'',foto:j.foto||null,avulso:!!j.avulso,goleiro:!!j.goleiro});
+const jogToRow=j=>({id:j.id,pelada_id:j.peladaId,nome:j.nome,apelido:j.apelido||'',foto:j.foto||null,avulso:!!j.avulso,goleiro:!!j.goleiro,posicao:j.pos||null});
 const notaRow=j=>({jogador_id:j.id,pelada_id:j.peladaId,nota:+j.nota||3});
 const rodFromRow=r=>({id:r.id,peladaId:r.pelada_id,data:r.data,presentes:r.presentes||[],times:r.times||[],manual:r.manual||{},fechada:!!r.fechada,foto:r.foto||null,coment:r.coment||{},campeaoId:r.campeao_id||null,jogos:[]});
 const rodToRow=r=>({id:r.id,pelada_id:r.peladaId,data:r.data,presentes:r.presentes,times:r.times,manual:r.manual||{},fechada:!!r.fechada,foto:r.foto||null,coment:r.coment||{},campeao_id:r.campeaoId||null});
@@ -991,7 +1000,7 @@ async function abrirPelada(pid){if(!G.minhas[pid])return;G.loading=true;render()
  const adm=G.minhas[pid]==='admin';
  const [j,n,r,g]=await Promise.all([sb.from('jogadores').select('*').eq('pelada_id',pid),adm?sb.from('notas').select('*').eq('pelada_id',pid):Promise.resolve({data:[]}),sb.from('rodadas').select('*').eq('pelada_id',pid),sb.from('jogos').select('*').eq('pelada_id',pid).order('ordem')]);
  const notas={};(n.data||[]).forEach(x=>notas[x.jogador_id]=Number(x.nota));
- S.jogadores=(j.data||[]).map(x=>({id:x.id,peladaId:x.pelada_id,nome:x.nome,apelido:x.apelido||'',foto:x.foto,avulso:!!x.avulso,goleiro:!!x.goleiro,nota:notas[x.id]??3}));
+ S.jogadores=(j.data||[]).map(x=>({id:x.id,peladaId:x.pelada_id,nome:x.nome,apelido:x.apelido||'',foto:x.foto,avulso:!!x.avulso,goleiro:!!x.goleiro,pos:x.posicao||null,nota:notas[x.id]??3}));
  S.rodadas=(r.data||[]).map(rodFromRow);(g.data||[]).forEach(x=>{const rr=S.rodadas.find(q=>q.id===x.rodada_id);if(rr)rr.jogos.push(jogoFromRow(x))});
  resetLast();assinar(pid);G.loading=false;G.view='app';U.tab='home';U.per=null;U.rodada=null;U.mais=null;U.bat=null;G.membros=[];G.codigo=null;
  if(adm)carregarMembros();render()}
@@ -1154,6 +1163,7 @@ function shJog(){const j=U.sheet.id?J(U.sheet.id):null;const foto=U.tmp.foto!==u
  <label class="fl"><span>Nome</span><input id="jNome" value="${esc(j?j.nome:'')}" placeholder="Ex.: Rodrigo Silva" autocomplete="off"></label>
  <label class="fl"><span>Apelido</span><input id="jApel" value="${esc(j?j.apelido:'')}" placeholder="Ex.: Digão" autocomplete="off"></label>
  <div class="fl"><span>Tipo</span><div class="opts">${[[0,'Elenco'],[1,'Avulso'],[2,'🧤 Goleiro']].map(([v,l])=>`<button class="opt ${tipo===v?'on':''}" data-a="jTipo" data-v="${v}">${l}</button>`).join('')}</div></div>
+ <div class="fl" ${eGk?'style="display:none"':''}><span>Posição</span><div class="opts">${[['Z','Z · Zagueiro'],['M','M · Meio'],['A','A · Atacante'],['','Ainda não sei']].map(([v,l])=>`<button class="opt ${((U.tmp.pos!==undefined?U.tmp.pos:(j?j.pos:null))||'')===v?'on':''}" data-a="jPos" data-v="${v}">${l}</button>`).join('')}</div></div>
  <div class="fl" ${eGk?'style="display:none"':''}><span>Nota (só o admin vê)</span><div class="opts">${NOTAS.map(n=>`<button class="opt ${(U.tmp.nota??(j?j.nota:3))===n?'on':''}" data-a="jNota" data-v="${n}">${fmtNota(n)}</button>`).join('')}</div></div>
  <button class="btn block" data-a="salvaJog">Salvar</button>${j?`<button class="btn danger block" data-a="delJog" data-id="${j.id}">Remover do elenco</button>`:''}<button class="btn ghost block" data-a="fechaSheet">Cancelar</button>`}
 function shSum(){const r=aberta();const id=U.sheet.id;const x=U.tmp.x||(U.tmp.x={...(sumula(r)[id]||{p:1,g:0,a:0,e:0,v:0,f:0})});
@@ -1223,6 +1233,8 @@ const A={
  novoJog(){U.tmp={};openSheet('jog',{id:null})},
  editJog(d){U.tmp={};openSheet('jog',{id:d.id})},
  avRank(){const p=pel();p.avulsoRank=!p.avulsoRank;save();render()},
+ jPos(d){U.tmp.pos=d.v||null;renderSheet()},
+ setPos(d,e){if(e&&e.stopPropagation)e.stopPropagation();const j=J(d.id);if(!j)return;j.pos=j.pos===d.v?null:d.v;save();render()},
  jTipo(d){U.tmp.avulso=d.v==='1';U.tmp.goleiro=d.v==='2';renderSheet()},
  novoGoleiro(){U.tmp={};openSheet('jog',{id:null,goleiro:true,sorteio:!!aberta()&&U.tab==='jogo'})},
  novoAvulsoJ(){U.tmp={};openSheet('jog',{id:null,avulso:true})},
@@ -1230,8 +1242,8 @@ const A={
  jNota(d){U.tmp.nota=Number(d.v);renderSheet()},
  salvaJog(){const nome=$('#jNome').value.trim(),apelido=$('#jApel').value.trim();if(!nome)return toast('Coloca o nome do jogador.');
   const id=U.sheet.id;const gk=U.tmp.goleiro??(id?!!J(id).goleiro:!!U.sheet.goleiro);const avu=gk?false:(U.tmp.avulso??(id?!!J(id).avulso:!!U.sheet.avulso));
-  if(id){const j=J(id);Object.assign(j,{nome,apelido,avulso:avu,goleiro:gk});if(U.tmp.nota!=null)j.nota=U.tmp.nota;if(U.tmp.foto!==undefined)j.foto=U.tmp.foto}
-  else{const nj={id:uid(),peladaId:S.atual,nome,apelido,nota:U.tmp.nota??3,foto:U.tmp.foto||null,avulso:avu,goleiro:gk};S.jogadores.push(nj);
+  if(id){const j=J(id);Object.assign(j,{nome,apelido,avulso:avu,goleiro:gk});if(U.tmp.pos!==undefined)j.pos=gk?null:U.tmp.pos;if(U.tmp.nota!=null)j.nota=U.tmp.nota;if(U.tmp.foto!==undefined)j.foto=U.tmp.foto}
+  else{const nj={id:uid(),peladaId:S.atual,nome,apelido,nota:U.tmp.nota??3,foto:U.tmp.foto||null,avulso:avu,goleiro:gk,pos:gk?null:(U.tmp.pos||null)};S.jogadores.push(nj);
    if(U.sheet.sorteio){const r=aberta();if(r&&!r.presentes.includes(nj.id)){r.presentes.push(nj.id);U.nt=null}}}
   const sorteio=U.sheet.sorteio;save();closeSheet();render();toast(id?'Jogador atualizado.':(avu?(sorteio?'Avulso cadastrado e marcado como presente.':'Avulso cadastrado.'):'Jogador cadastrado.'))},
  delJog(d){openSheet('conf',{titulo:'Remover jogador?',texto:'Ele sai do elenco e dos rankings.',ok:'Remover',perigo:1,acao:'delJog',id:d.id})},
