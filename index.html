@@ -481,6 +481,8 @@ function sortear(ids,nt,prev){
 const POS=['Z','M','A'];const POSN={Z:'Zagueiro',M:'Meio-campo',A:'Atacante'};
 const posTag=id=>{const j=J(id)||{};if(j.goleiro)return '';return j.pos?`<span class="pz pz-${j.pos}">${j.pos}</span>`:'<span class="pz pz-x" title="Sem posição">?</span>'};
 const posCont=t=>POS.map(k=>k+t.jogadores.filter(id=>(J(id)||{}).pos===k).length).join(' ');
+const tRef=t=>{const js=(t&&t.jogadores||[]).map(id=>J(id)).filter(j=>j&&!j.goleiro);if(!js.length)return '';js.sort((a,b)=>(b.nota||0)-(a.nota||0));const j=js[0];return j.apelido||j.nome};
+const tN=t=>{if(!t)return '?';const r=tRef(t);return r?`${t.nome} (${r})`:t.nome};
 const somaNota=t=>t.jogadores.reduce((s,id)=>s+((J(id)||{}).nota||0),0);
 
 /* ============ COMENTÁRIOS ============ */
@@ -626,30 +628,30 @@ function vPlacar(r){const g=jogoAtual(r);let h='';const T=id=>r.times.find(t=>t.
   if(podePlacar())h+=`<button class="btn block" data-a="encerrar">Encerrar jogo</button><button class="btn block danger" data-a="cancelJogo">Cancelar este jogo</button>`}
  else if(podePlacar()){const sug=sugestaoProx(r);U.novo=U.novo&&T(U.novo[0])&&T(U.novo[1])?U.novo:sug;
   h+=`<div class="card stack"><h2>Novo jogo</h2><div class="mu small">${r.jogos.length?'Sugestão: quem ganhou fica, entra quem jogou menos.':'Escolha os dois times em campo.'}</div>
-  <div class="grid2">${[0,1].map(i=>`<select id="novo${i}" data-f="novo" data-i="${i}">${r.times.map(t=>`<option value="${t.id}" ${U.novo[i]===t.id?'selected':''}>${esc(t.nome)}</option>`).join('')}</select>`).join('')}</div>
+  <div class="grid2">${[0,1].map(i=>`<select id="novo${i}" data-f="novo" data-i="${i}">${r.times.map(t=>`<option value="${t.id}" ${U.novo[i]===t.id?'selected':''}>${esc(tN(t))}</option>`).join('')}</select>`).join('')}</div>
   ${isAdm()?durCtrl():''}<button class="btn block" data-a="comecarJogo">Começar jogo</button></div>`}
  else h+=empty('Nenhum jogo em andamento agora.');
  const fins=r.jogos.filter(x=>x.fim);
  if(fins.length){const st=statsTimes(r);h+=`<div class="sec-h" style="margin-top:6px"><h2>Jogos do dia</h2><span class="mu small">${fins.length} jogos</span></div><div class="card" style="padding:2px 14px">${jogosList(r,fins)}</div>`;
-  h+=`<div class="card" style="padding:4px 14px"><table><thead><tr><th class="l">Time</th><th>J</th><th>V</th><th>E</th><th>D</th><th>SG</th></tr></thead><tbody>${[...r.times].sort((a,b)=>st[b.id].v-st[a.id].v||(st[b.id].gp-st[b.id].gc)-(st[a.id].gp-st[a.id].gc)).map(t=>`<tr><td class="l"><span class="row" style="gap:8px"><span class="sw" style="background:${t.cor}"></span>${esc(t.nome)}</span></td><td>${st[t.id].j}</td><td>${st[t.id].v}</td><td>${st[t.id].e}</td><td>${st[t.id].d}</td><td>${st[t.id].gp-st[t.id].gc}</td></tr>`).join('')}</tbody></table></div>`}
+  h+=`<div class="card" style="padding:4px 14px"><table><thead><tr><th class="l">Time</th><th>J</th><th>V</th><th>E</th><th>D</th><th>SG</th></tr></thead><tbody>${[...r.times].sort((a,b)=>st[b.id].v-st[a.id].v||(st[b.id].gp-st[b.id].gc)-(st[a.id].gp-st[a.id].gc)).map(t=>`<tr><td class="l"><span class="row" style="gap:8px"><span class="sw" style="background:${t.cor}"></span>${esc(tN(t))}</span></td><td>${st[t.id].j}</td><td>${st[t.id].v}</td><td>${st[t.id].e}</td><td>${st[t.id].d}</td><td>${st[t.id].gp-st[t.id].gc}</td></tr>`).join('')}</tbody></table></div>`}
  return h}
 function placarLista(g,ta,tb){const lado=U.pl||'a';const t=lado==='a'?ta:tb;const ids=lado==='a'?g.pa:g.pb;const ed=podePlacar();
  const cnt=id=>({g:g.ev.filter(e=>e.autor===id).length,a:g.ev.filter(e=>e.assist===id).length});
- let h=`<div class="stack" style="gap:10px"><div class="seg">${[['a',ta,g.ga],['b',tb,g.gb]].map(([l,tm,sc])=>`<button class="${lado===l?'on':''}" data-a="plLado" data-v="${l}"><span class="sw" style="display:inline-block;vertical-align:-2px;background:${tm.cor}"></span> ${esc(tm.nome)} · ${sc}</button>`).join('')}</div>`;
+ let h=`<div class="stack" style="gap:10px"><div class="seg">${[['a',ta,g.ga],['b',tb,g.gb]].map(([l,tm,sc])=>`<button class="${lado===l?'on':''}" data-a="plLado" data-v="${l}"><span class="sw" style="display:inline-block;vertical-align:-2px;background:${tm.cor}"></span> ${esc(tN(tm))} · ${sc}</button>`).join('')}</div>`;
  if(ed)h+=`<div class="mu small" style="text-align:center">Toque <b style="color:var(--y)">+</b> no gol de quem fez e no <b style="color:var(--y)">+</b> da assistência de quem passou.</div>`;
  h+=`<div class="card" style="padding:2px 14px">${ids.map(id=>{const x=cnt(id);return `<div class="bp"><div class="nm">${esc(nomeJ(id))}${avTag(id)}</div>${['g','a'].map(k=>`<div class="mini"><span class="lbl">${k==='g'?'Gols':'Assist.'}</span><div class="stp">${ed?`<button data-a="plJ" data-j="${id}" data-l="${lado}" data-k="${k}" data-v="-1" aria-label="Menos">−</button>`:''}<b class="${x[k]?'on':''}">${x[k]}</b>${ed?`<button data-a="plJ" data-j="${id}" data-l="${lado}" data-k="${k}" data-v="1" aria-label="Mais">+</button>`:''}</div></div>`).join('')}</div>`}).join('')}</div></div>`;
  return h}
 function durCtrl(c){const ab=aberta();const gg=c&&ab&&jogoAtual(ab);const d=gg?(gg.dur||pel().duracao):pel().duracao;return `<div class="dur"><div class="lbl">Tempo de jogo</div><div class="dur-row"><button data-a="dur" data-v="-5">−5</button><button data-a="dur" data-v="-1">−1</button><div class="dur-v"><b>${d}</b><span>min</span></div><button data-a="dur" data-v="1">+1</button><button data-a="dur" data-v="5">+5</button></div>${c?'':`<div class="opts" style="justify-content:center">`+[5,7,8,10,12,15].map(m=>`<button class="opt ${d===m?'on':''}" data-a="durSet" data-v="${m}">${m} min</button>`).join('')+'</div>'}</div>`}
-function sbTeam(t,sc,lado,g){return `<div class="sbt"><div class="tn"><span class="sw" style="background:${t.cor}"></span><span>${esc(t.nome)}</span></div><div class="score">${sc}</div>${podePlacar()?`<div class="sbc"><button class="btn minus" data-a="golMenos" data-l="${lado}" aria-label="Tirar gol">−</button><button class="btn" data-a="golMais" data-l="${lado}">+ Gol</button></div>`:''}</div>`}
+function sbTeam(t,sc,lado,g){return `<div class="sbt"><div class="tn"><span class="sw" style="background:${t.cor}"></span><span>${esc(tN(t))}</span></div><div class="score">${sc}</div>${podePlacar()?`<div class="sbc"><button class="btn minus" data-a="golMenos" data-l="${lado}" aria-label="Tirar gol">−</button><button class="btn" data-a="golMais" data-l="${lado}">+ Gol</button></div>`:''}</div>`}
 /* ============ EDITAR PARTIDAS ============ */
 function jogosList(r,list){const T=id=>r.times.find(t=>t.id===id)||{nome:'?',cor:'#555'};const adm=isAdm();
  return list.map(g=>{const ta=T(g.a),tb=T(g.b);const n=r.jogos.indexOf(g)+1;
   const gols=g.ev.length?`<div class="mu small" style="grid-column:1/-1;padding:0 0 8px 30px;line-height:1.35">${g.ev.map(e=>`⚽ ${esc(e.autor?nomeJ(e.autor):'sem nome')}${e.assist?` <span style="opacity:.7">(${esc(nomeJ(e.assist))})</span>`:''} · ${esc((e.lado==='a'?ta:tb).nome)}`).join('<br>')}</div>`:'';
-  return `<div class="gmw"><div class="gm"><div class="t ${g.ga>g.gb?'w':''}"><b class="gn">${n}</b><span class="sw" style="background:${ta.cor}"></span><span>${esc(ta.nome)}</span></div><div class="s">${g.ga} × ${g.gb}</div><div class="t r ${g.gb>g.ga?'w':''}"><span>${esc(tb.nome)}</span><span class="sw" style="background:${tb.cor}"></span>${adm?`<button class="ejb" data-a="ejAbrir" data-r="${r.id}" data-id="${g.id}" aria-label="Editar partida ${n}">✏️</button>`:''}</div></div>${gols}</div>`}).join('')}
+  return `<div class="gmw"><div class="gm"><div class="t ${g.ga>g.gb?'w':''}"><b class="gn">${n}</b><span class="sw" style="background:${ta.cor}"></span><span>${esc(tN(ta))}</span></div><div class="s">${g.ga} × ${g.gb}</div><div class="t r ${g.gb>g.ga?'w':''}"><span>${esc(tN(tb))}</span><span class="sw" style="background:${tb.cor}"></span>${adm?`<button class="ejb" data-a="ejAbrir" data-r="${r.id}" data-id="${g.id}" aria-label="Editar partida ${n}">✏️</button>`:''}</div></div>${gols}</div>`}).join('')}
 function ejRoster(r,tid,old){const t=r.times.find(x=>x.id===tid);return [...new Set([...(t?t.jogadores:[]),...(old||[])])].filter(id=>J(id))}
 function shEjogo(){const E=U.tmp.ej;const r=R(E.rid);const T=id=>r.times.find(t=>t.id===id)||{nome:'?'};
  const ga=E.ev.filter(e=>e.lado==='a').length,gb=E.ev.filter(e=>e.lado==='b').length;
- const opT=k=>r.times.map(t=>`<option value="${t.id}" ${E[k]===t.id?'selected':''}>${esc(t.nome)}</option>`).join('');
+ const opT=k=>r.times.map(t=>`<option value="${t.id}" ${E[k]===t.id?'selected':''}>${esc(tN(t))}</option>`).join('');
  const ros={a:ejRoster(r,E.a,E.gid&&E.a===E.a0?E.pa0:null),b:ejRoster(r,E.b,E.gid&&E.b===E.b0?E.pb0:null)};
  const opJ=(lado,sel,vazio)=>`<option value="">${vazio}</option>`+ros[lado].map(id=>`<option value="${id}" ${sel===id?'selected':''}>${esc(nomeJ(id))}</option>`).join('');
  return `<h2>${E.gid?'Partida '+E.n:'Nova partida'}</h2>
@@ -1156,7 +1158,7 @@ function closeSheet(){U.sheet=null;U.gol=null;U.tmp={};renderSheet()}
 function renderSheet(){const el=$('#sheet');if(!U.sheet){el.innerHTML='';return}const f={auth:shAuth,novaSenha:shNovaSenha,convite:shConvite,conta:shConta,verPel:shVerPel,desafio:shDesafio,txt:()=>`<h2>Copie o texto</h2><textarea id="rkTxt" style="min-height:260px" readonly>${esc(U.sheet.t)}</textarea><div class="mu small">Segure no texto → Selecionar tudo → Copiar.</div><button class="btn ghost block" data-a="fechaSheet">Fechar</button>`,gol:shGol,ejogo:shEjogo,perfil:shPerfil,jog:shJog,sum:shSum,conf:shConf,pel:shPel}[U.sheet.k];
  el.innerHTML=`<div class="scrim" data-a="scrim"><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${f()}</div></div>`}
 function shGol(){const r=aberta();const g=jogoAtual(r);const G=U.gol;const tid=G.lado==='a'?g.a:g.b;const t=r.times.find(x=>x.id===tid);const pl=G.lado==='a'?g.pa:g.pb;
- return `<div class="row"><span class="sw" style="width:22px;height:22px;background:${t.cor}"></span><h2 class="grow">Gol do ${esc(t.nome)}</h2></div>
+ return `<div class="row"><span class="sw" style="width:22px;height:22px;background:${t.cor}"></span><h2 class="grow">Gol do ${esc(tN(t))}</h2></div>
  <div class="lbl">Quem fez?</div><div class="opts">${pl.map(id=>`<button class="opt ${G.autor===id?'on':''}" data-a="golAutor" data-id="${id}">${esc(nomeJ(id))}</button>`).join('')}<button class="opt ${G.autor==='x'?'on':''}" data-a="golAutor" data-id="x">Contra / sem autor</button></div>
  <div class="lbl">Assistência (opcional)</div><div class="opts"><button class="opt ${!G.assist?'on':''}" data-a="golAssist" data-id="">Sem assistência</button>${pl.filter(id=>id!==G.autor).map(id=>`<button class="opt ${G.assist===id?'on':''}" data-a="golAssist" data-id="${id}">${esc(nomeJ(id))}</button>`).join('')}</div>
  <button class="btn block" data-a="golOk" ${G.autor?'':'disabled'}>Confirmar gol</button><button class="btn ghost block" data-a="fechaSheet">Cancelar</button>`}
@@ -1226,7 +1228,7 @@ const A={
  golOk(){const g=jogoAtual(aberta());const G=U.gol;g.ev.push({id:uid(),lado:G.lado,autor:G.autor==='x'?null:G.autor,assist:G.assist});G.lado==='a'?g.ga++:g.gb++;save();const n=G.autor&&G.autor!=='x'?nomeJ(G.autor):'';closeSheet();render();toast(n?'GOOOL do '+n+'!':'Gol registrado.')},
  golMenos(d){const g=jogoAtual(aberta());const i=g.ev.map(e=>e.lado).lastIndexOf(d.l);if(i<0)return toast('Esse time não tem gol pra tirar.');g.ev.splice(i,1);d.l==='a'?g.ga--:g.gb--;save();render();toast('Último gol removido.')},
  delEv(d){const g=jogoAtual(aberta());const i=g.ev.findIndex(e=>e.id===d.id);if(i<0)return;const e=g.ev[i];g.ev.splice(i,1);e.lado==='a'?g.ga--:g.gb--;save();render()},
- encerrar(){const r=aberta();const g=jogoAtual(r);g.el=tempo(g);g.t0=null;g.fim=true;save();const T=id=>r.times.find(t=>t.id===id).nome;toast(g.ga===g.gb?'Empate!':'Vitória do '+(g.ga>g.gb?T(g.a):T(g.b))+'!');render()},
+ encerrar(){const r=aberta();const g=jogoAtual(r);g.el=tempo(g);g.t0=null;g.fim=true;save();const T=id=>tN(r.times.find(t=>t.id===id));toast(g.ga===g.gb?'Empate!':'Vitória do '+(g.ga>g.gb?T(g.a):T(g.b))+'!');render()},
  cancelJogo(){openSheet('conf',{titulo:'Cancelar este jogo?',texto:'O placar e os lances deste jogo somem da súmula.',ok:'Cancelar jogo',perigo:1,acao:'cancelJogo'})},
  editSum(d){U.tmp={};openSheet('sum',{id:d.id})},
  sumStep(d){const x=U.tmp.x;const k=d.k;let v=x[k]+Number(d.v);if(v<0)v=0;if(d.mx&&v>Number(d.mx))v=Number(d.mx);x[k]=v;renderSheet()},
