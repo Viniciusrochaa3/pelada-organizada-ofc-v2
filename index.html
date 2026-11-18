@@ -335,6 +335,7 @@ input,select,textarea{font-size:16px}
 #scroller{display:flex;flex-direction:column;align-items:stretch}
 .app{width:100%;max-width:520px;margin:0 auto;min-width:0;overflow-x:clip;flex:none}
 .app>*{max-width:100%}
+.gkg{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}.gks{display:flex;flex-direction:column;gap:4px;background:#161614;border-radius:12px;padding:8px 10px}.gks .stp b{min-width:22px;text-align:center}
 </style>
 
 </head><body>
@@ -501,7 +502,7 @@ function gerarComentarios(r){const p=P(r.peladaId);const F=p.frases;const s=sumu
   out[o.id]=fr(c,o.id)});
  const jaJogaram=new Set(S.rodadas.filter(x=>x.peladaId===r.peladaId).flatMap(x=>x.presentes));
  elenco(r.peladaId).filter(j=>!j.avulso&&!pres.includes(j.id)&&jaJogaram.has(j.id)).forEach(j=>out[j.id]=fr('faltou',j.id));
- return out}
+ return Object.assign(out,gerarComentGk(r))}
 const CAT_LBL={bom:'Mandou bem',medio:'Meio de tabela',ruim:'Dia ruim',artilheiro:'Artilheiro do dia',garcom:'Rei das assistências',campeao:'Campeão',zero:'Zerou',faltou:'Faltou'};
 
 /* ============ ESTADO INICIAL (EXEMPLO) ============ */
@@ -558,8 +559,9 @@ function perSelector(){const per=U.per||(U.per=periodoPadrao());
  ${per.tipo==='mes'?`<select id="perMes" data-f="perMes" class="grow">${MESES.map((m,i)=>`<option value="${i+1}" ${per.mes===i+1?'selected':''}>${m}</option>`).join('')}</select>`:''}
  <select id="perAno" data-f="perAno" style="width:96px">${anos.map(a=>`<option ${per.ano===a?'selected':''}>${a}</option>`).join('')}</select></div>`}
 function vRanking(){const per=U.per||(U.per=periodoPadrao());const ag=agregado(per);
- const tabs=[['mvp','MVP'],['art','Artilharia'],['ass','Assist.'],['part','Gols+Assist.'],['plan','Planilha']];
+ const tabs=[['mvp','MVP'],['gk','🧤 Goleiros'],['art','Artilharia'],['ass','Assist.'],['part','Gols+Assist.'],['plan','Planilha']];
  let h=`<div class="stack" style="margin-top:6px"><h1>Ranking</h1><div class="seg">${tabs.map(([k,l])=>`<button class="${U.rk===k?'on':''}" data-a="rk" data-v="${k}">${l}</button>`).join('')}</div>${perSelector()}</div>`;
+ if(U.rk==='gk')return h+vRankingGk(per);
  if(!ag.rows.length)return h+`<div class="sec">${empty('Nenhuma rodada fechada em '+perLabel(per)+'.')}</div>`;
  h+=`<div class="sec"><div class="lbl">${perLabel(per)} · ${ag.rodadas.length} rodada${ag.rodadas.length>1?'s':''}</div>`;
  h+=`<div class="share"><button class="btn sm" data-a="rkShare">${I.share} Mandar no WhatsApp</button><button class="btn sm ghost" data-a="rkBaixar">${I.down} Baixar imagem</button><button class="btn sm ghost" data-a="rkCopiar">Copiar texto</button></div>`;
@@ -678,6 +680,7 @@ function vSumula(r){const p=pel();const s=sumula(r);const c=campeaoDe(r);
  h+=`<div class="sec-h"><h2>Súmula</h2>${isAdm()?'<span class="mu small">Toque num jogador pra corrigir</span>':''}</div>`;
  h+=rows.length?`<div class="tw"><table><thead><tr><th class="l">Jogador</th><th>P</th><th>G</th><th>A</th><th>E</th><th>V</th><th>F</th><th>Pts</th></tr></thead><tbody>${rows.map(x=>`<tr class="${isAdm()?'tap':''}" ${isAdm()?`data-a="editSum" data-id="${x.id}"`:''}><td class="l name">${esc(nomeJ(x.id))}${avTag(x.id)}${r.manual&&r.manual[x.id]?' <span class="pill y" style="padding:1px 5px">ed</span>':''}</td><td>${x.p}</td><td>${x.g}</td><td>${x.a}</td><td>${x.e}</td><td>${x.v}</td><td>${x.f}</td><td class="pts">${fmt(x.pts)}</td></tr>`).join('')}</tbody></table></div>`:empty('Marque quem veio no Sorteio.');
  if(isAdm())h+=`<div class="card stack" style="margin-top:6px"><div class="row"><div class="grow"><div class="lbl">Foto do time campeão</div><div class="mu small">${r.foto?'✅ Foto salva. Vai no topo do resumo pro grupo.':'Tira agora ou depois de fechar, na página da rodada.'}</div></div>${r.foto?`<img src="${r.foto}" alt="" style="width:56px;height:56px;border-radius:12px;object-fit:cover">`:''}</div><div class="grid2"><label class="btn sm ${r.foto?'ghost':''}">📷 ${r.foto?'Outra':'Tirar foto'}<input type="file" accept="image/*" capture="environment" data-up="fotoRodada" data-id="${r.id}" hidden></label><label class="btn sm ghost">🖼️ Galeria<input type="file" accept="image/*" data-up="fotoRodada" data-id="${r.id}" hidden></label></div></div>`;
+ h+=gkCard(r,isAdm());
  if(isAdm())h+=`<div class="stack" style="margin-top:6px"><button class="btn block" data-a="fecharDia" ${!rows.length?'disabled':''}>Fechar o dia</button><div class="mu small" style="text-align:center">Fechar calcula o campeão (foto = ${fmt(p.pesos.f)} pts), os pontos, solta os comentários e atualiza os rankings.</div><button class="btn block danger" data-a="apagarRodada" data-id="${r.id}">Apagar rodada</button></div>`;
  return h}
 
@@ -700,11 +703,12 @@ function vRodada(r){const p=pel();const s=sumula(r);const c=campeaoDe(r);const p
  ${c?`<div class="row wrap" style="gap:6px">${c.jogadores.map(id=>`<span class="chip">${esc(nomeJ(id))}</span>`).join('')}</div>`:''}</div>`;
  if(r.fechada)h+=`<section class="sec"><div class="card stack" style="border-color:var(--y)"><div class="lbl">Mandar o resumo no grupo</div><div class="mu small">${r.foto?'✅ Foto do campeão, resenha, súmula e ranking do mês numa imagem só.':'📷 Suba a foto do campeão ali em cima antes de mandar: ela vai no topo da imagem.'}</div><div class="share" style="margin:0"><button class="btn sm" data-a="rsShare" data-id="${r.id}">${I.share} Mandar no WhatsApp</button><button class="btn sm ghost" data-a="rsBaixar" data-id="${r.id}">${I.down} Baixar imagem</button><button class="btn sm ghost" data-a="rsCopiar" data-id="${r.id}">Copiar texto</button></div></div></section>`;
  if(rows.length>=3)h+=`<section class="sec"><h2>Top 3 do dia</h2>${podio(rows)}</section>`;
- const com=Object.entries(r.coment||{}).filter(([id])=>J(id));
+ const com=Object.entries(r.coment||{}).filter(([id,o])=>J(id)&&!(o&&ehGkCat(o.cat)));
  if(r.fechada&&com.length){const ord=id=>{const i=rows.findIndex(x=>x.id===id);return i<0?999:i};
   h+=`<section class="sec"><div class="sec-h"><h2>Resenha</h2>${isAdm()?'<button class="link" data-a="refazComent">Sortear de novo</button>':''}</div><div class="card stack" style="gap:14px">${com.sort((a,b)=>ord(a[0])-ord(b[0])).map(([id,o])=>`<div class="quote"><b>${CAT_LBL[o.cat]||''}</b>${esc(o.t)}</div>`).join('')}</div></section>`}
  const fins=r.jogos.filter(g=>g.fim);if(fins.length||isAdm())h+=`<section class="sec"><div class="sec-h"><h2>Partidas</h2><span class="mu small">${fins.length} em ordem</span></div>${isAdm()?'<div class="mu small">Errou algum placar ou gol? Toque no ✏️ da partida.</div>':''}<div class="card" style="padding:2px 14px">${jogosList(r,fins)}</div>${isAdm()?`<button class="btn sm ghost block" data-a="ejNovo" data-r="${r.id}">+ Adicionar partida esquecida</button>`:''}</section>`;
  h+=`<section class="sec"><h2>Súmula</h2><div class="tw"><table><thead><tr><th class="l">Jogador</th><th>P</th><th>G</th><th>A</th><th>E</th><th>V</th><th>F</th><th>Pts</th></tr></thead><tbody>${rows.map((x,i)=>`<tr class="${i<3?'top3':''}"><td class="l name">${esc(nomeJ(x.id))}</td><td>${x.p}</td><td>${x.g}</td><td>${x.a}</td><td>${x.e}</td><td>${x.v}</td><td>${x.f}</td><td class="pts">${fmt(x.pts)}</td></tr>`).join('')}</tbody></table></div></section>`;
+ h+=gkCard(r,isAdm());
  if(isAdm()&&r.fechada)h+=`<div class="sec"><button class="btn block ghost" data-a="reabrir" data-id="${r.id}">Reabrir rodada pra corrigir</button></div>`;
  if(!r.fechada)h+=`<div class="sec"><button class="btn block" data-a="tab" data-t="jogo">Abrir placar</button></div>`;
  return h}
@@ -745,6 +749,7 @@ function vAjustes(){const p=pel();
  <div class="stp-row" style="border:0"><div><b>Avulsos entram no ranking?</b><div class="mu small">${p.avulsoRank?'Sim, aparecem no MVP e nas tabelas.':'Não, só na súmula do dia.'}</div></div><button class="btn sm ${p.avulsoRank?'':'line'}" data-a="avRank">${p.avulsoRank?'Sim':'Não'}</button></div>
  <div class="grid2"><label class="fl"><span>Jogadores por time</span><input id="cfgPT" type="number" min="2" max="11" data-f="cfg" data-k="porTime" value="${p.porTime}"></label><label class="fl"><span>Minutos por jogo</span><input id="cfgDur" type="number" min="1" max="90" data-f="cfg" data-k="duracao" value="${p.duracao}"></label><label class="fl"><span>Ou até quantos gols (0 = sem)</span><input id="cfgGols" type="number" min="0" max="20" inputmode="numeric" data-f="cfg" data-k="golsFim" value="${+p.golsFim||0}"></label></div></div></div>`;
  h+=`<div class="sec"><h2>Pontuação do MVP</h2><div class="card stack"><div class="grid2">${[['g','Gol'],['a','Assistência'],['e','Empate'],['v','Vitória'],['f','Foto (campeão)']].map(([k,l])=>`<label class="fl"><span>${l}</span><input id="pw_${k}" type="number" step="0.1" min="0" inputmode="decimal" data-f="peso" data-k="${k}" value="${p.pesos[k]}"></label>`).join('')}</div><div class="mu small">Exemplo: 2 gols, 5 assist., 2 empates, 7 vitórias e foto = <b style="color:var(--y)">${fmt(2*p.pesos.g+5*p.pesos.a+2*p.pesos.e+7*p.pesos.v+p.pesos.f)} pts</b></div></div></div>`;
+ {const pg=pwGk(p);h+=`<div class="sec"><h2>🧤 Pontuação dos goleiros</h2><div class="card stack"><div class="grid2">${GK_K.map(k=>`<label class="fl"><span>${GK_LBL[k]}</span><input type="number" step="0.1" inputmode="decimal" data-f="pesoGk" data-k="${k}" value="${pg[k]}"></label>`).join('')}</div><div class="mu small">Ranking separado só dos goleiros. Frango usa número negativo (tira ponto).</div></div></div>`}
  h+=`<div class="sec"><h2>Frases da resenha</h2><div class="mu small">Uma frase por linha. Use {nome} onde entra o nome do jogador.</div>${FRASE_CATS.map(([k,l])=>`<label class="fl"><span>${l}</span><textarea id="fr_${k}" data-f="frase" data-k="${k}">${esc((p.frases[k]||[]).join('\n'))}</textarea></label>`).join('')}<button class="btn ghost block" data-a="frasesPadrao">Voltar frases originais</button></div>`;
  return h}
 
@@ -855,7 +860,7 @@ function tmBlob(){return tmCanvas().then(c=>new Promise(r=>c.toBlob(r,'image/png
 function rsDados(r){const p=P(r.peladaId);const s=sumula(r);const c=campeaoDe(r);
  const nj=id=>r.jogos.filter(g=>g.fim&&((g.pa||[]).includes(id)||(g.pb||[]).includes(id))).length;const rows=Object.keys(s).filter(id=>s[id].p&&J(id)).map(id=>({id,...s[id],j:nj(id),pts:pontos(s[id],p.pesos)})).sort((a,b)=>b.pts-a.pts||b.v-a.v||b.g-a.g);
  const ord=id=>{const i=rows.findIndex(x=>x.id===id);return i<0?999:i};
- const todas=Object.entries(r.coment||{}).filter(([id])=>J(id)).sort((a,b)=>ord(a[0])-ord(b[0])).map(([,o])=>o);
+ const todas=Object.entries(r.coment||{}).filter(([id,o])=>J(id)&&!(o&&ehGkCat(o.cat))).sort((a,b)=>ord(a[0])-ord(b[0])).map(([,o])=>o);
  const pri=['campeao','artilheiro','garcom','ruim','zero','bom','medio','faltou'];const com=[];const usa=new Set();
  pri.forEach(cat=>{const o=todas.find(o=>o.cat===cat&&!usa.has(o));if(o&&com.length<6){com.push(o);usa.add(o)}});
  todas.forEach(o=>{if(com.length<6&&!usa.has(o)){com.push(o);usa.add(o)}});
@@ -922,6 +927,99 @@ async function rsCanvas(r){try{await document.fonts.ready}catch(e){}
  return cv}
 const rsNomeArq=r=>`rodada-${r.data}.png`;
 
+/* ============ GOLEIROS (ranking separado) ============ */
+const PESOS_GK_PADRAO={dd:1,pd:2,g:1.5,a:0.8,fr:-1};
+const GK_K=['dd','pd','g','a','fr'];
+const GK_LBL={dd:'Defesa difícil',pd:'Pênalti defendido',g:'Gol',a:'Assistência',fr:'Frango'};
+const GK_SIG={dd:'DD',pd:'PD',g:'G',a:'A',fr:'FR'};
+const GK_DESDE='2026-11-18';
+const pwGk=(p=pel())=>({...PESOS_GK_PADRAO,...((p&&p.pesosGk)||{})});
+const gkPres=r=>(r.presentes||[]).filter(id=>(J(id)||{}).goleiro);
+const gkStat=(r,id)=>({dd:0,pd:0,g:0,a:0,fr:0,...((r.gk||{})[id]||{})});
+const ptsGk=(x,pw)=>Math.round(GK_K.reduce((s,k)=>s+(+x[k]||0)*(+pw[k]||0),0)*100)/100;
+const ordGk=(x,y)=>y.pts-x.pts||(y.dd+y.pd)-(x.dd+x.pd)||x.fr-y.fr||nomeJ(x.id).localeCompare(nomeJ(y.id));
+function gkDia(r){if(!r||r.data<GK_DESDE)return [];const pw=pwGk(P(r.peladaId));return gkPres(r).map(id=>{const x=gkStat(r,id);return {id,...x,pts:ptsGk(x,pw)}}).sort(ordGk)}
+function agregadoGk(per,pid=S.atual){const pw=pwGk(P(pid));const rs=S.rodadas.filter(r=>r.peladaId===pid&&r.fechada&&r.data>=GK_DESDE&&noPer(r.data,per));const tot={};
+ rs.forEach(r=>gkPres(r).forEach(id=>{const t=tot[id]||(tot[id]={id,p:0,dd:0,pd:0,g:0,a:0,fr:0,pts:0});const x=gkStat(r,id);t.p++;GK_K.forEach(k=>t[k]+=+x[k]||0)}));
+ Object.values(tot).forEach(t=>t.pts=ptsGk(t,pw));return {rows:Object.values(tot).filter(t=>J(t.id)).sort(ordGk),rodadas:rs}}
+const FRASES_GK={
+ gkParedao:['{nome} fechou o gol. Trouxe até cadeado de casa.','O {nome} pegou tanta bola que o atacante pediu música no Fantástico de revolta.','{nome} hoje foi muralha. Só faltou cobrar pedágio.','O {nome} voou tanto que a ANAC quer explicação.','{nome} defendeu até pensamento do atacante.','O {nome} hoje tava com cola nas luvas.','Atacante adversário vai sonhar com o {nome} hoje. Pesadelo, no caso.','{nome} pegou bola que nem o VAR acharia.','O {nome} transformou o gol num cofre.','{nome} hoje foi o melhor reforço sem custo da pelada.'],
+ gkPenalti:['{nome} pegou pênalti. Vai contar essa até os netos cansarem.','O {nome} adivinhou o canto e agora acha que é vidente.','{nome} defendeu pênalti e já tá pedindo música na resenha.','O batedor olhou pro {nome} e esqueceu como chuta.','{nome} pegou pênalti. Taffarel mandou abraço.','O {nome} esperou, pulou e humilhou. Pênalti é com ele.'],
+ gkGol:['{nome} goleiro artilheiro. O Rogério Ceni ficou preocupado.','O {nome} cansou de esperar o time e foi resolver lá na frente.','{nome} fez gol. Agora vai querer jogar na linha, socorro.','Gol do {nome}! Os atacantes deviam pedir aula.','O {nome} marcou e o gol dele ficou vazio. Valeu o risco? Pela resenha, valeu.'],
+ gkGarcom:['{nome} deu assistência de goleiro. Lançamento de 40 metros e ninguém agradeceu.','O {nome} armou jogada do gol. Camisa 1 com cabeça de camisa 10.','{nome} distribuiu bola melhor que muito meia da pelada.'],
+ gkFrango:['{nome} hoje foi patrocinado pela Sadia.','O {nome} levou um frango tão bonito que dava pra assar.','{nome}, a bola é redonda e vem na sua direção. Era só pegar.','O {nome} abriu as pernas e o gol agradeceu.','{nome} fez a granja inteira hoje.','A luva do {nome} hoje veio com sabão.','O {nome} pulou atrasado igual boleto.','{nome} hoje foi goleiro de videogame com o controle sem pilha.','O {nome} tomou um gol que até o atacante pediu desculpa.','{nome}: a defesa do dia foi a do adversário, que defendeu o direito de rir dele.'],
+ gkMedio:['{nome} fez o básico no gol. Nem herói, nem frango.','O {nome} pegou as que vieram nele. As outras, paciência.','{nome} cumpriu tabela debaixo da trave.','O {nome} jogou no modo poste: firme, mas parado.','{nome} hoje foi o goleiro "ok". Sofá bege de luva.','O {nome} não comprometeu. Também não salvou ninguém.'],
+ gkZero:['{nome} passou a pelada inteira de enfeite no gol.','O {nome} quase dormiu encostado na trave.','{nome} não pegou, não soltou, não apareceu. Goleiro holograma.','O {nome} fez tanta coisa hoje quanto a rede do gol.','{nome} veio de luva só pra combinar o look.']
+};
+const GK_CAT_LBL={gkParedao:'Paredão do dia',gkPenalti:'Pegador de pênalti',gkGol:'Goleiro artilheiro',gkGarcom:'Goleiro garçom',gkFrango:'Frangueiro',gkMedio:'Fez o básico',gkZero:'Enfeite de trave'};
+function gerarComentGk(r){const out={};const lst=gkDia(r);if(!lst.length)return out;const maxDD=Math.max(0,...lst.map(x=>x.dd));
+ const recentes=S.rodadas.filter(x=>x.peladaId===r.peladaId&&x.id!==r.id&&x.fechada).sort((a,b)=>b.data.localeCompare(a.data)).slice(0,4).flatMap(x=>Object.values(x.coment||{}).map(o=>o&&o.t||''));
+ const esc2=t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');const rx=tp=>new RegExp('^'+tp.split('{nome}').map(esc2).join('.+')+'$');const usadas=new Set();
+ lst.forEach(x=>{let c;if(x.fr>0&&x.fr>=x.dd+x.pd)c='gkFrango';else if(x.pd>0)c='gkPenalti';else if(x.g>0)c='gkGol';else if(maxDD>0&&x.dd===maxDD)c='gkParedao';else if(x.a>0)c='gkGarcom';else if(x.dd+x.pd+x.g+x.a+x.fr===0)c='gkZero';else c='gkMedio';
+  const pool=FRASES_GK[c];let cand=pool.filter(tp=>!usadas.has(tp)&&!recentes.some(t=>rx(tp).test(t)));if(!cand.length)cand=pool.filter(tp=>!usadas.has(tp));if(!cand.length)cand=pool;const tp=pick(cand);usadas.add(tp);
+  out[x.id]={cat:c,t:tp.split('{nome}').join(nomeJ(x.id))}});return out}
+const ehGkCat=c=>String(c||'').startsWith('gk');
+function gkCard(r,editavel){const lst=gkDia(r);if(!lst.length)return '';const pw=pwGk(P(r.peladaId));
+ let h=`<section class="sec"><div class="sec-h"><h2>🧤 Goleiros do dia</h2><span class="mu small">ranking separado</span></div>`;
+ h+=lst.map(x=>`<div class="card stack" style="gap:10px"><div class="row"><b class="grow" style="font-size:17px">${esc(nomeJ(x.id))}</b><span class="nota" style="font-size:15px">${fmt(x.pts)} pts</span></div>
+  <div class="gkg">${GK_K.map(k=>`<div class="gks"><span class="mu small">${GK_LBL[k]}</span>${editavel?`<div class="stp"><button data-a="gkStep" data-r="${r.id}" data-id="${x.id}" data-k="${k}" data-v="-1">−</button><b>${x[k]}</b><button data-a="gkStep" data-r="${r.id}" data-id="${x.id}" data-k="${k}" data-v="1">+</button></div>`:`<b style="font-size:18px">${x[k]}</b>`}</div>`).join('')}</div></div>`).join('');
+ h+=`<div class="mu small">Pontos do goleiro: ${GK_K.map(k=>GK_LBL[k]+' '+(pw[k]>0?'+':'')+fmt(pw[k])).join(' · ')}</div>`;
+ const com=Object.entries(r.coment||{}).filter(([id,o])=>J(id)&&o&&ehGkCat(o.cat));
+ if(r.fechada&&com.length)h+=`<div class="card stack" style="gap:14px">${com.map(([,o])=>`<div class="quote"><b>${GK_CAT_LBL[o.cat]||''}</b>${esc(o.t)}</div>`).join('')}</div>`;
+ return h+'</section>'}
+function vRankingGk(per){const ag=agregadoGk(per);const pw=pwGk();
+ if(!ag.rows.length)return `<div class="sec">${empty('Nenhum goleiro com rodada fechada em '+perLabel(per)+'. O ranking de goleiros conta a partir de 18/11.')}</div>`;
+ let h=`<div class="sec"><div class="lbl">🧤 Goleiros · ${perLabel(per)} · ${ag.rodadas.length} rodada${ag.rodadas.length>1?'s':''}</div>`;
+ h+=`<div class="tw"><table><thead><tr><th>Rkg</th><th class="l">Goleiro</th><th>J</th><th>DD</th><th>PD</th><th>G</th><th>A</th><th>FR</th><th>Pts</th></tr></thead><tbody>${ag.rows.map((r,i)=>`<tr class="${i<3?'top3':''}"><td>${i+1}º</td><td class="l name">${esc(nomeJ(r.id))}</td><td>${r.p}</td><td>${r.dd}</td><td>${r.pd}</td><td>${r.g}</td><td>${r.a}</td><td>${r.fr}</td><td class="pts">${fmt(r.pts)}</td></tr>`).join('')}</tbody></table></div>`;
+ h+=`<div class="mu small">J jogos · DD defesa difícil · PD pênalti defendido · G gol · A assist. · FR frango. Pontos: ${GK_K.map(k=>GK_SIG[k]+' '+(pw[k]>0?'+':'')+fmt(pw[k])).join(' · ')}</div>`;
+ return h+'</div>'}
+function rsGkTexto(r){const lst=gkDia(r);if(!lst.length)return '';const [y,m]=r.data.split('-').map(Number);
+ const mes=agregadoGk({tipo:'mes',ano:y,mes:m},r.peladaId).rows,ano=agregadoGk({tipo:'ano',ano:y},r.peladaId).rows;
+ const com=Object.entries(r.coment||{}).filter(([id,o])=>J(id)&&o&&ehGkCat(o.cat)).map(([,o])=>o);
+ const ln=(x,i)=>`${['🥇','🥈','🥉'][i]||(i+1)+'º'} ${nomeJ(x.id)} — *${fmt(x.pts)} pts* (${x.dd}DD ${x.pd}PD ${x.g}G ${x.a}A ${x.fr}FR)`;
+ let t=`\n\n*🧤 GOLEIROS DO DIA*\n_DD defesa difícil · PD pênalti · G gol · A assist. · FR frango_\n`+lst.map(ln).join('\n')+'\n';
+ if(com.length)t+=`\n*😂 RESENHA DOS GOLEIROS*\n`+com.map(o=>'• '+o.t).join('\n')+'\n';
+ if(mes.length)t+=`\n*🧤 GOLEIROS — ${MESES[m-1].toUpperCase()}*\n`+mes.map((x,i)=>`${['🥇','🥈','🥉'][i]||(i+1)+'º'} ${nomeJ(x.id)} — *${fmt(x.pts)} pts* (${x.p}J)`).join('\n')+'\n';
+ if(ano.length)t+=`\n*🧤 GOLEIROS — ${y}*\n`+ano.map((x,i)=>`${['🥇','🥈','🥉'][i]||(i+1)+'º'} ${nomeJ(x.id)} — *${fmt(x.pts)} pts* (${x.p}J)`).join('\n')+'\n';
+ return t}
+async function rsGkCanvas(r){try{await document.fonts.ready}catch(e){}
+ const lst=gkDia(r);if(!lst.length)return null;const p=P(r.peladaId);const [y,m]=r.data.split('-').map(Number);
+ const mes=agregadoGk({tipo:'mes',ano:y,mes:m},r.peladaId).rows,ano=agregadoGk({tipo:'ano',ano:y},r.peladaId).rows;
+ const com=Object.entries(r.coment||{}).filter(([id,o])=>J(id)&&o&&ehGkCat(o.cat)).map(([,o])=>o);
+ const W=1080,P0=56,RH=58;const D="'Big Shoulders Display',Impact,'Arial Narrow',sans-serif",B="'Barlow',system-ui,sans-serif",N="'Barlow Condensed','Arial Narrow',sans-serif";
+ const mc=document.createElement('canvas').getContext('2d');
+ const wrap=(t,font,max)=>{mc.font=font;const ws=String(t).split(' ');const ls=[];let l='';ws.forEach(w=>{const tt=l?l+' '+w:w;if(mc.measureText(tt).width>max&&l){ls.push(l);l=w}else l=tt});if(l)ls.push(l);return ls};
+ const comL=com.map(o=>({cat:(GK_CAT_LBL[o.cat]||'').toUpperCase(),ls:wrap('“'+o.t+'”',`500 30px ${B}`,W-2*P0-60)}));
+ const tabH=n=>140+n*RH+20;
+ const H=210+tabH(lst.length)+(com.length?90+comL.reduce((s,o)=>s+34+o.ls.length*40+22,0)+10:0)+(mes.length?tabH(mes.length):0)+(ano.length?tabH(ano.length):0)+150;
+ const cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
+ const rr=(X,Y,w,h,rad)=>{x.beginPath();x.moveTo(X+rad,Y);x.arcTo(X+w,Y,X+w,Y+h,rad);x.arcTo(X+w,Y+h,X,Y+h,rad);x.arcTo(X,Y+h,X,Y,rad);x.arcTo(X,Y,X+w,Y,rad);x.closePath()};
+ const corta=(t,max)=>{while(x.measureText(t).width>max&&t.length>3)t=t.slice(0,-2)+'…';return t};
+ x.fillStyle='#0B0B0A';x.fillRect(0,0,W,H);
+ x.fillStyle='#FFD400';rr(P0,P0,W-2*P0,120,28);x.fill();
+ x.fillStyle='rgba(11,11,10,.65)';x.font=`700 26px ${N}`;x.fillText('RESUMO DOS GOLEIROS  ·  '+diaSem(r.data).toUpperCase()+', '+dmy(r.data),P0+30,P0+42);
+ x.fillStyle='#0B0B0A';x.font=`900 58px ${D}`;x.fillText(corta('🧤 '+p.nome.toUpperCase(),W-2*P0-60),P0+30,P0+100);
+ let yy=210;
+ const tabela=(tit,rows,cols,legenda)=>{x.fillStyle='#F6F5EF';x.font=`900 44px ${D}`;x.fillText(tit,P0,yy+50);yy+=80;
+  x.font=`700 22px ${N}`;x.fillStyle='#A09E92';x.textAlign='right';let cx=W-P0-20;const pos=[];for(let i=cols.length-1;i>=0;i--){pos[i]=cx;cx-=cols[i][2]}cols.forEach((cl,i)=>x.fillText(cl[0],pos[i],yy+6));x.textAlign='left';yy+=20;
+  const med=['#FFD400','#D6D5CE','#C98A4B'];
+  rows.forEach((rw,i)=>{if(i%2===0){x.fillStyle='#161614';rr(P0,yy,W-2*P0,RH-6,16);x.fill()}const cy=yy+(RH-6)/2+10;
+   if(i<3){x.fillStyle=med[i];x.beginPath();x.arc(P0+36,cy-10,20,0,Math.PI*2);x.fill();x.fillStyle='#0B0B0A'}else x.fillStyle='#A09E92';
+   x.font=`900 26px ${D}`;x.textAlign='center';x.fillText(i+1,P0+36,cy-1);x.textAlign='left';
+   x.fillStyle='#F6F5EF';x.font=`${i<3?700:600} 30px ${B}`;x.fillText(corta(nomeJ(rw.id),cx-(P0+76)-10),P0+76,cy);
+   x.textAlign='right';cols.forEach((cl,j)=>{const last=j===cols.length-1;x.fillStyle=last?'#FFD400':'#F6F5EF';x.font=`${last?700:600} ${last?32:28}px ${N}`;x.fillText(cl[1](rw),pos[j],cy)});x.textAlign='left';yy+=RH});
+  yy+=6;x.fillStyle='#A09E92';x.font=`500 22px ${B}`;x.fillText(legenda,P0,yy+10);yy+=48};
+ const cGk=[['DD',r=>r.dd,58],['PD',r=>r.pd,58],['G',r=>r.g,58],['A',r=>r.a,58],['FR',r=>r.fr,58],['PTS',r=>fmt(r.pts),100]];
+ tabela('🧤 GOLEIROS DO DIA',lst,cGk,'DD defesa difícil · PD pênalti defendido · G gol · A assist. · FR frango');
+ if(com.length){x.fillStyle='#F6F5EF';x.font=`900 44px ${D}`;x.fillText('😂 RESENHA DOS GOLEIROS',P0,yy+50);yy+=80;
+  comL.forEach(o=>{const h=34+o.ls.length*40+8;x.fillStyle='#161614';rr(P0,yy,W-2*P0,h,22);x.fill();x.fillStyle='#FFD400';x.fillRect(P0,yy+14,5,h-28);
+   x.font=`700 22px ${N}`;x.fillText(o.cat,P0+30,yy+32);x.fillStyle='#E9E7DF';x.font=`500 30px ${B}`;o.ls.forEach((l,i)=>x.fillText(l,P0+30,yy+72+i*40));yy+=h+14});yy+=10}
+ const cAc=[['J',r=>r.p,58],['DD',r=>r.dd,58],['PD',r=>r.pd,58],['FR',r=>r.fr,58],['PTS',r=>fmt(r.pts),100]];
+ if(mes.length)tabela('🏅 GOLEIROS — '+MESES[m-1].toUpperCase(),mes,cAc,'Mês completo · J jogos');
+ if(ano.length)tabela('🏆 GOLEIROS — '+y,ano,cAc,'Ano completo · J jogos');
+ x.fillStyle='#2F2E29';x.fillRect(P0,yy,W-2*P0,2);x.fillStyle='#FFD400';x.font=`800 32px ${D}`;x.fillText('PELADA ORGANIZADA OFC',P0,yy+60);
+ return cv}
+
 /* ============ MONTAR TIMES NA MÃO (arrastar) ============ */
 function montarTimes(){const r=aberta();const nt=Math.max(2,Math.min(8,U.nt||2));r.times=Array.from({length:nt},(_,i)=>({id:uid(),nome:'Time '+(i+1),cor:CORES[i%CORES.length].c,jogadores:[]}));U.sel=null;save();render();toast('Agora arraste cada nome pro time dele.')}
 function moverPara(id,dest){const r=aberta();if(!r)return;r.times.forEach(t=>t.jogadores=t.jogadores.filter(x=>x!==id));if(dest!=='pool'){const t=r.times.find(t=>t.id===dest);if(t)t.jogadores.push(id)}U.sel=null;save();render()}
@@ -949,12 +1047,12 @@ const isMembro=()=>!!(S.atual&&G.minhas[S.atual]);
 const podePlacar=()=>isAdm();
 const minhasAdmin=()=>Object.keys(G.minhas).filter(id=>G.minhas[id]==='admin');
 
-const pelFromRow=r=>{const c=r.config||{};return {id:r.id,nome:r.nome,cidade:r.cidade||'',uf:r.uf||'SP',dia:r.dia??1,logo:r.logo||null,porTime:c.porTime||5,duracao:c.duracao||8,golsFim:+c.golsFim||0,pesos:{...PESOS_PADRAO,...(c.pesos||{})},frases:c.frases||JSON.parse(JSON.stringify(FRASES_PADRAO)),avulsoRank:!!c.avulsoRank,semDesempate:!!c.semDesempate}};
-const pelToRow=p=>({id:p.id,nome:p.nome,cidade:p.cidade||'',uf:p.uf||'SP',dia:+p.dia||0,logo:p.logo||null,config:{porTime:+p.porTime||5,duracao:+p.duracao||8,golsFim:+p.golsFim||0,pesos:p.pesos,frases:p.frases,avulsoRank:!!p.avulsoRank,semDesempate:!!p.semDesempate}});
+const pelFromRow=r=>{const c=r.config||{};return {id:r.id,nome:r.nome,cidade:r.cidade||'',uf:r.uf||'SP',dia:r.dia??1,logo:r.logo||null,porTime:c.porTime||5,duracao:c.duracao||8,golsFim:+c.golsFim||0,pesos:{...PESOS_PADRAO,...(c.pesos||{})},pesosGk:{...PESOS_GK_PADRAO,...(c.pesosGk||{})},frases:c.frases||JSON.parse(JSON.stringify(FRASES_PADRAO)),avulsoRank:!!c.avulsoRank,semDesempate:!!c.semDesempate}};
+const pelToRow=p=>({id:p.id,nome:p.nome,cidade:p.cidade||'',uf:p.uf||'SP',dia:+p.dia||0,logo:p.logo||null,config:{porTime:+p.porTime||5,duracao:+p.duracao||8,golsFim:+p.golsFim||0,pesos:p.pesos,frases:p.frases,avulsoRank:!!p.avulsoRank,semDesempate:!!p.semDesempate,pesosGk:p.pesosGk||null}});
 const jogToRow=j=>({id:j.id,pelada_id:j.peladaId,nome:j.nome,apelido:j.apelido||'',foto:j.foto||null,avulso:!!j.avulso,goleiro:!!j.goleiro,posicao:j.pos||null});
 const notaRow=j=>({jogador_id:j.id,pelada_id:j.peladaId,nota:+j.nota||3});
-const rodFromRow=r=>({id:r.id,peladaId:r.pelada_id,data:r.data,presentes:r.presentes||[],times:r.times||[],manual:r.manual||{},fechada:!!r.fechada,foto:r.foto||null,coment:r.coment||{},campeaoId:r.campeao_id||null,jogos:[]});
-const rodToRow=r=>({id:r.id,pelada_id:r.peladaId,data:r.data,presentes:r.presentes,times:r.times,manual:r.manual||{},fechada:!!r.fechada,foto:r.foto||null,coment:r.coment||{},campeao_id:r.campeaoId||null});
+const rodFromRow=r=>({id:r.id,peladaId:r.pelada_id,data:r.data,presentes:r.presentes||[],times:r.times||[],manual:r.manual||{},fechada:!!r.fechada,foto:r.foto||null,coment:r.coment||{},campeaoId:r.campeao_id||null,gk:r.gk||{},jogos:[]});
+const rodToRow=r=>({id:r.id,pelada_id:r.peladaId,data:r.data,presentes:r.presentes,times:r.times,manual:r.manual||{},fechada:!!r.fechada,foto:r.foto||null,coment:r.coment||{},campeao_id:r.campeaoId||null,gk:r.gk||{}});
 const jogoFromRow=x=>({id:x.id,a:x.a,b:x.b,ga:+x.ga||0,gb:+x.gb||0,pa:x.pa||[],pb:x.pb||[],ev:x.ev||[],fim:!!x.fim,el:+x.el||0,t0:x.t0?+x.t0:null,dur:x.dur?+x.dur:null});
 const jogoToRow=(g,r,i)=>({id:g.id,rodada_id:r.id,pelada_id:r.peladaId,ordem:i,a:g.a,b:g.b,ga:g.ga,gb:g.gb,pa:g.pa,pb:g.pb,ev:g.ev,fim:!!g.fim,el:+g.el||0,t0:g.t0||null,dur:g.dur||null});
 const batFromRow=x=>({id:x.id,a:x.a,b:x.b||null,status:x.status,data:x.data||'',hora:x.hora||'',local:x.local||'',ga:+x.ga||0,gb:+x.gb||0,st:x.st||{},okA:!!x.ok_a,okB:!!x.ok_b});
@@ -1272,11 +1370,14 @@ const A={
   try{if(navigator.canShare&&navigator.canShare({files:[f]})){const c=campeaoDe(r);await navigator.share({files:[f],text:`🏆 Campeão ${diaSem(r.data)}, ${dmy(r.data)}${c?': '+c.nome+' ('+c.jogadores.map(nomeJ).join(', ')+')':''}`});return}}catch(e){if(e&&e.name==='AbortError')return}
   baixarBlob(b,nome);toast('Foto baixada. Agora é só mandar no grupo!')},
  async fotoBaixar(d){const r=R(d.id);if(!r||!r.foto)return toast('Essa rodada ainda não tem foto.');const b=await A.fotoBlob(r);baixarBlob(b,`campeao-${r.data}.jpg`);toast('Foto salva. Dá pra usar como foto do grupo.')},
- async rsShare(d){const r=R(d.id);if(!r.foto&&isAdm()&&!U.semFotoOk){U.semFotoOk=1;return toast('Sem foto do campeão ainda. Toque de novo pra mandar assim mesmo.')}toast('Gerando imagem…');const cv=await rsCanvas(r);const b=await new Promise(q=>cv.toBlob(q,'image/png'));const f=new File([b],rsNomeArq(r),{type:'image/png'});
-  try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],text:rsTexto(r)});return}}catch(e){if(e&&e.name==='AbortError')return}
-  baixarBlob(b,rsNomeArq(r));toast('Imagem baixada. É só mandar no grupo!')},
- async rsBaixar(d){const r=R(d.id);const cv=await rsCanvas(r);const b=await new Promise(q=>cv.toBlob(q,'image/png'));baixarBlob(b,rsNomeArq(r));toast('Resumo da rodada baixado.')},
- async rsCopiar(d){const t=rsTexto(R(d.id));try{await navigator.clipboard.writeText(t);toast('Texto copiado! Cola no grupo do WhatsApp.')}catch(e){openSheet('txt',{t})}},
+ gkStep(d){const r=R(d.r);if(!r)return;r.gk=r.gk||{};const x=gkStat(r,d.id);x[d.k]=Math.max(0,(+x[d.k]||0)+Number(d.v));r.gk[d.id]=x;
+  if(r.fechada){const keep={};Object.entries(r.coment||{}).forEach(([k,o])=>{if(!(o&&ehGkCat(o.cat)))keep[k]=o});r.coment=Object.assign(keep,gerarComentGk(r))}save();render()},
+ async rsShare(d){const r=R(d.id);if(!r.foto&&isAdm()&&!U.semFotoOk){U.semFotoOk=1;return toast('Sem foto do campeão ainda. Toque de novo pra mandar assim mesmo.')}toast('Gerando imagem…');const cv=await rsCanvas(r);const b=await new Promise(q=>cv.toBlob(q,'image/png'));const f=new File([b],rsNomeArq(r),{type:'image/png'});const files=[f];let bg=null;
+  const cg=await rsGkCanvas(r);if(cg){bg=await new Promise(q=>cg.toBlob(q,'image/png'));files.push(new File([bg],`goleiros-${r.data}.png`,{type:'image/png'}))}
+  try{if(navigator.canShare&&navigator.canShare({files})){await navigator.share({files,text:rsTexto(r)+rsGkTexto(r)});return}}catch(e){if(e&&e.name==='AbortError')return}
+  baixarBlob(b,rsNomeArq(r));if(bg)setTimeout(()=>baixarBlob(bg,`goleiros-${r.data}.png`),700);toast(bg?'2 imagens baixadas (geral e goleiros). É só mandar no grupo!':'Imagem baixada. É só mandar no grupo!')},
+ async rsBaixar(d){const r=R(d.id);const cv=await rsCanvas(r);const b=await new Promise(q=>cv.toBlob(q,'image/png'));baixarBlob(b,rsNomeArq(r));const cg=await rsGkCanvas(r);if(cg){const bg=await new Promise(q=>cg.toBlob(q,'image/png'));setTimeout(()=>baixarBlob(bg,`goleiros-${r.data}.png`),700)}toast(cg?'Resumo geral e dos goleiros baixados.':'Resumo da rodada baixado.')},
+ async rsCopiar(d){const t=rsTexto(R(d.id))+rsGkTexto(R(d.id));try{await navigator.clipboard.writeText(t);toast('Texto copiado! Cola no grupo do WhatsApp.')}catch(e){openSheet('txt',{t})}},
  ejAbrir(d){const r=R(d.r);const g=r.jogos.find(x=>x.id===d.id);U.tmp={ej:{rid:r.id,gid:g.id,n:r.jogos.indexOf(g)+1,a:g.a,b:g.b,a0:g.a,b0:g.b,pa0:g.pa,pb0:g.pb,ev:g.ev.map(e=>({...e}))}};openSheet('ejogo',{})},
  ejNovo(d){const r=R(d.r);if(r.times.length<2)return toast('Precisa ter pelo menos 2 times.');U.tmp={ej:{rid:r.id,gid:null,a:r.times[0].id,b:r.times[1].id,ev:[]}};openSheet('ejogo',{})},
  ejLado(d){const e=U.tmp.ej.ev[+d.i];e.lado=e.lado==='a'?'b':'a';e.autor=null;e.assist=null;renderSheet()},
@@ -1373,6 +1474,7 @@ document.addEventListener('change',e=>{const el=e.target;const f=el.dataset.f;
  else if(f==='tnome'){const t=aberta().times.find(t=>t.id===el.dataset.id);t.nome=el.value.trim()||t.nome;save()}
  else if(f==='novo'){U.novo[+el.dataset.i]=el.value}
  else if(f==='cfg'){const k=el.dataset.k;let v=el.value;if(k==='golsFim')v=Math.max(0,+v||0);else if(k==='dia'||k==='porTime'||k==='duracao')v=Math.max(k==='dia'?0:1,+v||0);if(k==='nome'&&!v.trim())return;p[k]=v;save();render()}
+ else if(f==='pesoGk'){const v=parseFloat(String(el.value).replace(',','.'));p.pesosGk={...pwGk(p)};p.pesosGk[el.dataset.k]=isNaN(v)?0:v;save();render()}
  else if(f==='peso'){const v=parseFloat(String(el.value).replace(',','.'));p.pesos[el.dataset.k]=isNaN(v)?0:v;save();render()}
  else if(f==='frase'){p.frases[el.dataset.k]=el.value.split('\n').map(s=>s.trim()).filter(Boolean);save();toast('Frases salvas.')}
  else if(f==='fUf'){G.uf=el.value;G.cidade='';render()}
