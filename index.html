@@ -336,6 +336,7 @@ input,select,textarea{font-size:16px}
 .app{width:100%;max-width:520px;margin:0 auto;min-width:0;overflow-x:clip;flex:none}
 .app>*{max-width:100%}
 .gkg{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}.gks{display:flex;flex-direction:column;gap:4px;background:#161614;border-radius:12px;padding:8px 10px}.gks .stp b{min-width:22px;text-align:center}
+.gkbar{background:#141412;border:1.5px solid var(--y);border-radius:18px;padding:12px 14px;margin-bottom:12px;display:flex;flex-direction:column;gap:10px}.gkr{display:flex;flex-direction:column;gap:6px}.gkn{display:flex;justify-content:space-between;align-items:center}.gkc{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:6px}.gkx{display:flex;align-items:center;justify-content:space-between;background:#1f1f1c;border-radius:12px;padding:3px}.gkx button{width:30px;height:30px;border-radius:9px;border:0;background:#2b2b27;color:#fff;font-size:18px;font-weight:700;cursor:pointer}.gkx button:active{background:var(--y);color:#0B0B0A}.gkx span{display:flex;flex-direction:column;align-items:center;line-height:1}.gkx small{font-size:10px;color:#A09E92;font-weight:700}.gkx b{font-size:17px}.gkx.fr small{color:#F87171}
 </style>
 
 </head><body>
@@ -621,6 +622,7 @@ function vSorteio(r){const p=pel();const el=elenco();const n=r.presentes.filter(
 function jogoAtual(r){return r.jogos.find(g=>!g.fim)}
 function vPlacar(r){const g=jogoAtual(r);let h='';const T=id=>r.times.find(t=>t.id===id);
  if(!r.times.length)return empty(podePlacar()?'Sorteie os times antes de começar.':'Os times ainda não foram sorteados.',podePlacar()?`<button class="btn" data-a="jogoTab" data-v="sorteio">Ir pro sorteio</button>`:'');
+ h+=gkBar(r);
  if(g){const ta=T(g.a),tb=T(g.b);
   h+=`<div class="board"><div class="clock" id="clock">--:--</div>
   <div class="sb">${sbTeam(ta,g.ga,'a',g)}<div class="vs">×</div>${sbTeam(tb,g.gb,'b',g)}</div>
@@ -959,6 +961,8 @@ function gerarComentGk(r){const out={};const lst=gkDia(r);if(!lst.length)return 
   const pool=FRASES_GK[c];let cand=pool.filter(tp=>!usadas.has(tp)&&!recentes.some(t=>rx(tp).test(t)));if(!cand.length)cand=pool.filter(tp=>!usadas.has(tp));if(!cand.length)cand=pool;const tp=pick(cand);usadas.add(tp);
   out[x.id]={cat:c,t:tp.split('{nome}').join(nomeJ(x.id))}});return out}
 const ehGkCat=c=>String(c||'').startsWith('gk');
+function gkBar(r){const lst=gkPres(r);if(!lst.length||r.data<GK_DESDE)return '';const ed=isAdm();const pw=pwGk(P(r.peladaId));
+ return `<div class="gkbar"><div class="row"><div class="lbl grow">🧤 Goleiros (fixos)</div><span class="mu small">${ed?'toque + ou −':'ao vivo'}</span></div>${lst.map(id=>{const x=gkStat(r,id);return `<div class="gkr"><div class="gkn"><b>${esc(nomeJ(id))}</b><span class="nota">${fmt(ptsGk(x,pw))} pts</span></div><div class="gkc">${GK_K.map(k=>`<div class="gkx ${k==='fr'?'fr':''}">${ed?`<button data-a="gkStep" data-r="${r.id}" data-id="${id}" data-k="${k}" data-v="-1" aria-label="menos ${GK_LBL[k]}">−</button>`:''}<span><small>${GK_SIG[k]}</small><b>${x[k]}</b></span>${ed?`<button data-a="gkStep" data-r="${r.id}" data-id="${id}" data-k="${k}" data-v="1" aria-label="mais ${GK_LBL[k]}">+</button>`:''}</div>`).join('')}</div></div>`}).join('')}<div class="mu small" style="margin-top:2px">DD defesa difícil · PD pênalti defendido · G gol · A assist. · FR frango</div></div>`}
 function gkCard(r,editavel){const lst=gkDia(r);if(!lst.length)return '';const pw=pwGk(P(r.peladaId));
  let h=`<section class="sec"><div class="sec-h"><h2>🧤 Goleiros do dia</h2><span class="mu small">ranking separado</span></div>`;
  h+=lst.map(x=>`<div class="card stack" style="gap:10px"><div class="row"><b class="grow" style="font-size:17px">${esc(nomeJ(x.id))}</b><span class="nota" style="font-size:15px">${fmt(x.pts)} pts</span></div>
